@@ -11,14 +11,21 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
-    ],
+		.package(url: "https://github.com/tsolomko/SWCompression.git", from: "4.7.0"),
+		.package(url: "https://github.com/tetraoxygen/jwt-kit.git", branch: "add-zip-support"),
+		.package(url: "https://github.com/apple/FHIRModels.git", from: "0.4.0")
+
+	],
     targets: [
         .target(
             name: "App",
             dependencies: [
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
-                .product(name: "Vapor", package: "vapor")
+                .product(name: "Vapor", package: "vapor"),
+				.product(name: "SWCompression", package: "SWCompression"),
+				.product(name: "JWTKit", package: "jwt-kit"),
+				.product(name: "ModelsR4", package: "FHIRModels"),
             ],
             swiftSettings: [
                 // Enable better optimizations when building in Release configuration. Despite the use of
