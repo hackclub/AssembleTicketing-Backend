@@ -93,6 +93,11 @@ struct VaccinationController: RouteCollection {
 								throw Abort(.badRequest, reason: "Record marked as Immunization was not.")
 							}
 
+							// Don't bother adding incomplete vaccinations.
+							guard immunization.status.value == .completed else {
+								continue
+							}
+
 							// Handle checking that there aren't multiple references.
 							if let immunizationReference = immunizationReference {
 								guard immunizationReference.reference == immunization.patient.reference else {
@@ -114,12 +119,20 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.badRequest, reason: "No patient given in card.")
 		}
 
+		immunizationModels.sort { lhs, rhs in
+			lhs.date < rhs.date
+		}
+
 		guard immunizationModels.count >= 2 else {
 			throw Abort(.badRequest, reason: "Not enough immunizations against COVID-19.")
 		}
 
-		immunizationModels.sort { lhs, rhs in
-			lhs.date < rhs.date
+		// TODO: Make this configurable.
+		let assembleDate = Date(timeIntervalSince1970: 1657495648)
+
+		// Check that their second shot is in time for the event.
+		guard immunizationModels[1].date.timeIntervalSince(assembleDate) < -(60 * 60 * 24 * 14) else {
+			throw Abort(.conflict, reason: "Vaccination is too recent for Assemble.")
 		}
 
 		return VerifiedVaccinationRecord(
@@ -128,7 +141,7 @@ struct VaccinationController: RouteCollection {
 				url: payload.issuer
 			),
 			name: patientModel.names.joined(separator: " "),
-			mostRecentDose: immunizationModels.last!.date
+			secondShotDate: immunizationModels[1].date
 		)
 	}
 }
@@ -145,6 +158,6 @@ struct VerifiedVaccinationRecord: Content {
 	var issuer: VaccinationIssuer
 	/// The name of the patient.
 	var name: String
-	/// The date of the most recent dose.
-	var mostRecentDose: Date
+	/// The date of the second dose (required for full vaccination).
+	var secondShotDate: Date
 }
