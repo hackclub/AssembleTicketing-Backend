@@ -10,8 +10,8 @@ struct ImmunizationModel: Content {
 	var vaccineCodes: [VaccineCode]
 	/// The date the immunization was given on.
 	var date: Date
-	/// The lot number of the vaccine.
-	var lotNumber: String
+	/// The lot number of the vaccine (if available).
+	var lotNumber: String?
 
 	/// A representation of a vaccine code.
 	struct VaccineCode: Content {

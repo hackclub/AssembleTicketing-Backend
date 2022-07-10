@@ -10,6 +10,4 @@ enum FHIRModelErrors: Error {
 	case missingStatus
 	/// The vaccine code information wasn't provided.
 	case missingVaccineCode
-	/// The lot number wasn't provided.
-	case missingLotNumber
 }

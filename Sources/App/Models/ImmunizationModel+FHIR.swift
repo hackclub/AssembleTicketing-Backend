@@ -27,10 +27,7 @@ extension ImmunizationModel {
 		self.date = try Date(immunization.occurrence)
 
 		// Lot Number
-		guard let lotNumber = immunization.lotNumber?.value?.string else {
-			throw FHIRModelErrors.missingLotNumber
-		}
-		self.lotNumber = lotNumber
+		self.lotNumber = immunization.lotNumber?.value?.string
 	}
 }
 
