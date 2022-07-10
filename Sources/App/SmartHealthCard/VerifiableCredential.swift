@@ -6,7 +6,10 @@ extension SmartHealthCard.Payload {
 	public struct VerifiableCredential: Codable {
 		/// The types of the credential.
 		public var type: [CredentialType]
+		/// The subject of the credential.
 		public var credentialSubject: CredentialSubject
+		/// The `rid` of the credential for revocation (if any).
+		public var rid: String?
 	}
 }
 

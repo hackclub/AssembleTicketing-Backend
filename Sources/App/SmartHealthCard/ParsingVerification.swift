@@ -99,12 +99,12 @@ extension SmartHealthCard {
 	/// - Parameters:
 	///   - jws: A string containing the JSON Web Signature format version of the health card.
 	public static func verify(jws: String) async throws -> Payload {
-		let issuer = try getIssuer(from: jws)
-
-		let (jwksData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/jwks.json"))
+		let (issuer, kid) = try getInfo(from: jws)
 
 		let decoder = JSONDecoder()
 		decoder.dateDecodingStrategy = .secondsSince1970
+
+		let (jwksData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/jwks.json"))
 		let jwks = try decoder.decode(JWKS.self, from: jwksData)
 
 		let signers = JWTSigners()
@@ -112,10 +112,20 @@ extension SmartHealthCard {
 
 		let payload = try signers.verify(jws, as: Payload.self)
 
+		if let rid = payload.verifiableCredential.rid {
+			let (revocationData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/crl/\(kid).json"))
+
+			let revocations = try decoder.decode(RevocationData.self, from: revocationData)
+
+			guard !revocations.rids.contains(rid) else {
+				throw VerificationError.revoked
+			}
+		}
+
 		return payload
 	}
 
-	private static func getIssuer(from jws: String) throws -> URL {
+	private static func getInfo(from jws: String) throws -> (issuer: URL, keyID: String) {
 		let splitJWS = jws.split(separator: ".")
 
 		let splitJWSData = try splitJWS.map { jwsComponent -> Data in
@@ -126,10 +136,28 @@ extension SmartHealthCard {
 		}
 
 		let bodyData = try Deflate.decompress(data: splitJWSData[1])
+
 		let decoder = JSONDecoder()
+		let headers = try decoder.decode(KeyIDHelper.self, from: splitJWSData[0])
 		let body = try decoder.decode(Payload.self, from: bodyData)
 
-		return body.issuer
+		return (body.issuer, headers.kid)
+	}
+
+	/// A struct representing the structure of a Certificate Revocation List.
+	struct RevocationData: Codable {
+		/// The key on which things have been revoked.
+		var kid: String
+		/// The method by which things have been revoked.
+		var method: String
+		/// The `rids` that have been revoked, if any.
+		var rids: [String]
+	}
+
+	/// A small helper struct to decode the key ID from the headers of a JWS.
+	struct KeyIDHelper: Codable {
+		/// The key ID of the JWS.
+		var kid: String
 	}
 
 	/// A function to convert from the SMART Health Card numerical format to a Swift Character.

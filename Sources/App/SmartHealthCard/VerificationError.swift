@@ -14,5 +14,7 @@ extension SmartHealthCard {
 		case failedQRNumberConversion
 		/// The data provided wasn't a valid JWS.
 		case invalidJWS
+		/// The card was revoked by the provider.
+		case revoked
 	}
 }
