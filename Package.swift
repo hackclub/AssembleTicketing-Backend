@@ -12,9 +12,10 @@ let package = Package(
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
 		.package(url: "https://github.com/tsolomko/SWCompression.git", from: "4.7.0"),
+		.package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
 		.package(url: "https://github.com/tetraoxygen/jwt-kit.git", branch: "add-zip-support"),
-		.package(url: "https://github.com/apple/FHIRModels.git", from: "0.4.0")
-
+		.package(url: "https://github.com/apple/FHIRModels.git", from: "0.4.0"),
+		.package(url: "https://github.com/allotropeinc/ConcurrentIteration.git", from: "1.0.0")
 	],
     targets: [
         .target(
@@ -25,8 +26,13 @@ let package = Package(
                 .product(name: "Vapor", package: "vapor"),
 				.product(name: "SWCompression", package: "SWCompression"),
 				.product(name: "JWTKit", package: "jwt-kit"),
+				.product(name: "JWT", package: "jwt"),
 				.product(name: "ModelsR4", package: "FHIRModels"),
+				.product(name: "ConcurrentIteration", package: "ConcurrentIteration")
             ],
+			resources: [
+				.copy("Resources/vci-issuers.json")
+			],
             swiftSettings: [
                 // Enable better optimizations when building in Release configuration. Despite the use of
                 // the `.unsafeFlags` construct required by SwiftPM, this flag is recommended for Release

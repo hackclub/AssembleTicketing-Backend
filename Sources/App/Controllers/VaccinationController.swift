@@ -22,15 +22,16 @@ struct VaccinationController: RouteCollection {
 		var qrChunks: [String]?
 	}
 
-	func create(req: Request) async throws -> SmartHealthCard.Payload {
+	func create(req: Request) async throws -> VerifiedVaccinationRecord {
 		let healthCard = try req.content.decode(HealthCardData.self)
 
 		var payload: SmartHealthCard.Payload
+		var name: String
 
 		if let qr = healthCard.qr {
-			payload = try await SmartHealthCard.verify(qr: qr)
+			(name, payload) = try await SmartHealthCard.verify(qr: qr)
 		} else if let qrChunks = healthCard.qrChunks {
-			payload = try await SmartHealthCard.verify(qrChunks: qrChunks)
+			(name, payload) = try await SmartHealthCard.verify(qrChunks: qrChunks)
 		} else {
 			throw Abort(.badRequest, reason: "Specify chunks or single QR code.")
 		}
@@ -117,8 +118,33 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.badRequest, reason: "Not enough immunizations against COVID-19.")
 		}
 
-		return payload
+		immunizationModels.sort { lhs, rhs in
+			lhs.date < rhs.date
+		}
+
+		return VerifiedVaccinationRecord(
+			issuer: VaccinationIssuer(
+				name: name,
+				url: payload.issuer
+			),
+			name: patientModel.names.joined(separator: " "),
+			mostRecentDose: immunizationModels.last!.date
+		)
 	}
 }
 
 extension SmartHealthCard.Payload: Content { }
+
+struct VaccinationIssuer: Content {
+	var name: String
+	var url: URL
+}
+
+struct VerifiedVaccinationRecord: Content {
+	/// The issuer of the record.
+	var issuer: VaccinationIssuer
+	/// The name of the patient.
+	var name: String
+	/// The date of the most recent dose.
+	var mostRecentDose: Date
+}

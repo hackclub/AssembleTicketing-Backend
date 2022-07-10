@@ -1,6 +1,8 @@
 import Fluent
 import FluentPostgresDriver
 import Vapor
+import JWT
+import ConcurrentIteration
 
 // configures your application
 public func configure(_ app: Application) throws {
@@ -17,4 +19,25 @@ public func configure(_ app: Application) throws {
 
     // register routes
     try routes(app)
+
+	/// Get issuers.
+	guard let issuerListURL = Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {
+		throw Abort(.internalServerError, reason: "Couldn't load VCI issuers list.")
+	}
+
+	let decoder = JSONDecoder()
+	decoder.dateDecodingStrategy = .secondsSince1970
+
+	let issuerListData = try Data(contentsOf: issuerListURL)
+
+	// Get the isusers.
+	let issuerList = try decoder.decode(VCIDirectory.self, from: issuerListData).participating_issuers
+	// This explicitly uses `iss` values, not the canonical issuer, since canonical issuers can be the same as another `iss` value. 
+	let issuerTuples = issuerList.map({ vciIssuer in
+		(vciIssuer.iss, vciIssuer)
+	})
+	issuers = Dictionary(uniqueKeysWithValues: issuerTuples)
 }
+
+/// A dictionary of the issuers, where the key is the issuer URL.
+var issuers: [URL: VCIIssuer] = [:]

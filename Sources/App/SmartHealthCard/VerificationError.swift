@@ -16,5 +16,7 @@ extension SmartHealthCard {
 		case invalidJWS
 		/// The card was revoked by the provider.
 		case revoked
+		/// The card wasn't from an approved provider.
+		case invalidProvider
 	}
 }

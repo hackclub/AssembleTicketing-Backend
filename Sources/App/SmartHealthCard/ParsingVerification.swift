@@ -5,7 +5,7 @@ import JWTKit
 extension SmartHealthCard {
 	/// A function that verifies a series of SMART Health Card chunks.
 	///
-	static func verify(qrChunks: [String]) async throws -> Payload {
+	static func verify(qrChunks: [String]) async throws -> (issuerName: String, payload: Payload) {
 		var jwsChunks = try qrChunks.map { chunk -> (chunkNumber: Int, chunk: String) in
 			// Shadow it so we can use the damned thing.
 			var chunk = chunk
@@ -55,7 +55,7 @@ extension SmartHealthCard {
 	///
 	/// - Parameters:
 	///   - qr: The string that you get from decoding a SMART Health Card QR code.
-	public static func verify(qr: String) async throws -> Payload {
+	public static func verify(qr: String) async throws -> (issuerName: String, payload: Payload) {
 		// Shadow the thing so we can mutate it
 		var qr = qr
 		// Remove the prefix.
@@ -98,8 +98,8 @@ extension SmartHealthCard {
 	///
 	/// - Parameters:
 	///   - jws: A string containing the JSON Web Signature format version of the health card.
-	public static func verify(jws: String) async throws -> Payload {
-		let (issuer, kid) = try getInfo(from: jws)
+	public static func verify(jws: String) async throws -> (issuerName: String, payload: Payload) {
+		let (issuer, kid, name) = try getInfo(from: jws)
 
 		let decoder = JSONDecoder()
 		decoder.dateDecodingStrategy = .secondsSince1970
@@ -146,10 +146,10 @@ extension SmartHealthCard {
 			}
 		}
 
-		return payload
+		return (name, payload)
 	}
 
-	private static func getInfo(from jws: String) throws -> (issuer: URL, keyID: String) {
+	private static func getInfo(from jws: String) throws -> (issuer: URL, keyID: String, issuerName: String) {
 		let splitJWS = jws.split(separator: ".")
 
 		let splitJWSData = try splitJWS.map { jwsComponent -> Data in
@@ -165,7 +165,13 @@ extension SmartHealthCard {
 		let headers = try decoder.decode(KeyIDHelper.self, from: splitJWSData[0])
 		let body = try decoder.decode(Payload.self, from: bodyData)
 
-		return (body.issuer, headers.kid)
+		guard let lookupIssuer = issuers[body.issuer] else {
+			throw VerificationError.invalidProvider
+		}
+
+		let issuerName = lookupIssuer.name
+
+		return (body.issuer, headers.kid, issuerName)
 	}
 
 	/// A struct representing the structure of a Certificate Revocation List.
