@@ -117,7 +117,33 @@ extension SmartHealthCard {
 
 			let revocations = try decoder.decode(RevocationData.self, from: revocationData)
 
-			guard !revocations.rids.contains(rid) else {
+			let revocationList = revocations.rids.map { string -> (rid: String, invalidateAllBefore: Date) in
+				let strings = string.split(separator: ".")
+				var date: Date
+				if strings.count > 1, let epochTime = Double(strings[1]) {
+					date = Date(timeIntervalSince1970: epochTime)
+				} else {
+					date = Date()
+				}
+
+				return (String(strings[0]), date)
+			}
+
+			print(revocationList)
+
+			let firstRevocation = revocationList.first { (listedRID: String, invalidateAllBefore: Date) in
+				guard rid != listedRID else {
+					return true
+				}
+
+				guard payload.notBefore <= invalidateAllBefore else {
+					return true
+				}
+
+				return false
+			}
+
+			guard firstRevocation == nil else {
 				throw VerificationError.revoked
 			}
 		}
