@@ -103,7 +103,7 @@ struct VaccinationController: RouteCollection {
 
 							immunizationModels.append(try ImmunizationModel(immunization: immunization))
 						default:
-							print(resource.resourceType)
+							continue
 					}
 				}
 			}

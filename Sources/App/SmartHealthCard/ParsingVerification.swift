@@ -129,8 +129,6 @@ extension SmartHealthCard {
 				return (String(strings[0]), date)
 			}
 
-			print(revocationList)
-
 			let firstRevocation = revocationList.first { (listedRID: String, invalidateAllBefore: Date) in
 				guard rid != listedRID else {
 					return true
