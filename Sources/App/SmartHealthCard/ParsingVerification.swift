@@ -26,6 +26,26 @@ extension URLSession {
 			}
 		})
 	}
+
+	func data(from url: URL) async throws -> (data: Data, response: URLResponse) {
+		return try await withCheckedThrowingContinuation({ continuation in
+			self.dataTask(with: url) { data, response, error in
+				if let error = error {
+					continuation.resume(throwing: error)
+					return
+				}
+
+				guard let data = data, let response = response else {
+					// Not strictly true, but this should never be called anyways. In the event that it is, Amino should not crash. So we lie to the rest of the app.
+					continuation.resume(throwing: URLError(.cancelled))
+					return
+				}
+
+
+				continuation.resume(returning: (data, response))
+			}
+		})
+	}
 }
 #endif
 
