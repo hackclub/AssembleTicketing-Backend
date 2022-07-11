@@ -2,6 +2,33 @@ import Foundation
 import SWCompression
 import JWTKit
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+
+// NOTE: FoundationNetworking doesn't natively support asynchronous URLSession methods.
+extension URLSession {
+	func data(for request: URLRequest) async throws -> (data: Data, response: URLResponse) {
+		return try await withCheckedThrowingContinuation({ continuation in
+			self.dataTask(with: request) { data, response, error in
+				if let error = error {
+					continuation.resume(throwing: error)
+					return
+				}
+
+				guard let data = data, let response = response else {
+					// Not strictly true, but this should never be called anyways. In the event that it is, Amino should not crash. So we lie to the rest of the app.
+					continuation.resume(throwing: URLError(.cancelled))
+					return
+				}
+
+
+				continuation.resume(returning: (data, response))
+			}
+		})
+	}
+}
+#endif
+
 extension SmartHealthCard {
 	/// A function that verifies a series of SMART Health Card chunks.
 	///
