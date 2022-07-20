@@ -5,6 +5,14 @@ struct UserController: RouteCollection {
 	func boot(routes: RoutesBuilder) throws {
 		let users = routes.grouped("users")
 		users.get(use: me)
+		let admin = users
+			.grouped(EnsureAdminUserMiddleware())
+			.grouped("admin")
+		admin.get("index", use: adminIndex)
+	}
+
+	func adminIndex(req: Request) async throws -> [User] {
+		return try await User.query(on: req.db).all()
 	}
 
 	/// Get or create the user (if it doesn't exist already).
@@ -13,22 +21,15 @@ struct UserController: RouteCollection {
 
 		let user = try await User.find(UUID(uuidString: token.subject.value), on: req.db)
 
-		guard let authorizationHeader = req.headers.bearerAuthorization else {
-			throw Abort(.badRequest, reason: "Missing authorization header.")
-		}
+
 
 		if let user = user {
 			return user
 		} else {
-			let userRequest = try await req.client.get("https://api.allotrope.id/users/me", headers: .init([
-				("Authorization", "Bearer \(authorizationHeader.token)")
-			]))
-
-			let sendable = try userRequest.content.decode(SendableUser.self)
+			let sendable = try await req.getUserDetails()
 
 			guard sendable.organizations.contains(where: { orgRole in
-				// TODO: Make this configurable
-				orgRole.organizationID == UUID(uuidString: "8ceeeff2-276d-4e73-93a4-eaa33bd43677")!
+				orgRole.organizationID == assembleOrgID
 			}) else {
 				throw Abort(.forbidden, reason: "You're not in the Assemble org.")
 			}
@@ -42,16 +43,4 @@ struct UserController: RouteCollection {
 	}
 }
 
-struct SendableUser: Content {
-	var id: UUID?
-	var name: String
-	var email: String
-	var roles: [String]
-	/// The organizations the user's in, with the roles as the value.
-	var organizations: [OrgRole]
 
-	struct OrgRole: Codable {
-		var organizationID: UUID
-		var roles: [String]
-	}
-}

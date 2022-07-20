@@ -57,3 +57,6 @@ var issuers: [URL: VCIIssuer] = [:]
 
 let decoder = JSONDecoder()
 let nicknames = try! decoder.decode([String: [String]].self, from: Data(contentsOf: Bundle.module.url(forResource: "nicknames", withExtension: "json")!))
+
+// TODO: Make this configurable
+let assembleOrgID = UUID(uuidString: "8ceeeff2-276d-4e73-93a4-eaa33bd43677")!

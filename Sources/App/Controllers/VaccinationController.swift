@@ -14,7 +14,36 @@ struct VaccinationController: RouteCollection {
 		let image = vaccinations.grouped("image")
 		image.post(use: uploadImage)
 		vaccinations.get(use: view)
+		let admin = vaccinations
+			.grouped(EnsureAdminUserMiddleware())
+			.grouped("admin")
+
+		admin.group(":userID") { vaccination in
+			vaccination.post("status", use: adminSet)
+		}
     }
+
+	struct AdminVaccinationUpdate: Content {
+		var newStatus: User.VaccinationVerificationStatus
+	}
+
+	/// Allows an admin to set a user's vaccination status manually (e.g, for `humanReviewRequired`).
+	/// - Returns: A `User` object with the vaccination data prefilled.
+	func adminSet(req: Request) async throws -> User {
+		let update = try req.content.decode(AdminVaccinationUpdate.self)
+
+		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+			throw Abort(.notFound, reason: "No such user")
+		}
+
+		user.vaccinationStatus = update.newStatus
+
+		try await user.save(on: req.db)
+
+		try await user.$vaccinationData.load(on: req.db)
+
+		return user
+	}
 
 	struct HealthCardData: Content {
 		var qr: String?
