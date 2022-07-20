@@ -31,7 +31,8 @@ let package = Package(
 				.product(name: "ConcurrentIteration", package: "ConcurrentIteration")
             ],
 			resources: [
-				.copy("Resources/vci-issuers.json")
+				.copy("Resources/vci-issuers.json"),
+				.copy("Resources/nicknames.json")
 			],
             swiftSettings: [
                 // Enable better optimizations when building in Release configuration. Despite the use of

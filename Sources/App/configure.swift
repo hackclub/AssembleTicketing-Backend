@@ -9,6 +9,8 @@ public func configure(_ app: Application) throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
+	app.routes.defaultMaxBodySize = "10mb"
+
     app.databases.use(.postgres(
         hostname: Environment.get("DATABASE_HOST") ?? "localhost",
         port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? PostgresConfiguration.ianaPortNumber,
@@ -19,6 +21,17 @@ public func configure(_ app: Application) throws {
 
     // register routes
     try routes(app)
+
+	// Keys
+	let accessPEM = try String(contentsOfFile: Environment.get("ACCESS_KEY_PATH")!)
+	let accessKey = try RSAKey.public(pem: accessPEM)
+	let accessSigner: JWTSigner = .rs256(key: accessKey)
+	app.jwt.signers.use(accessSigner, kid: "access", isDefault: true)
+
+	// Migrations
+	app.migrations.add(User.Create())
+	app.migrations.add(VaccinationData.Create())
+	app.migrations.add(VaccinationData.AddMIMEType())
 
 	/// Get issuers.
 	guard let issuerListURL = Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {
@@ -41,3 +54,6 @@ public func configure(_ app: Application) throws {
 
 /// A dictionary of the issuers, where the key is the issuer URL.
 var issuers: [URL: VCIIssuer] = [:]
+
+let decoder = JSONDecoder()
+let nicknames = try! decoder.decode([String: [String]].self, from: Data(contentsOf: Bundle.module.url(forResource: "nicknames", withExtension: "json")!))

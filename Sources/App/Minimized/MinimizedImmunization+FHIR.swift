@@ -1,7 +1,7 @@
 import Foundation
 import ModelsR4
 
-extension ImmunizationModel {
+extension Minimized.Immunization {
 	init(immunization: Immunization) throws {
 		// Status
 		guard let status = immunization.status.value else {
@@ -31,3 +31,9 @@ extension ImmunizationModel {
 	}
 }
 
+
+extension Immunization {
+	func minimized() throws -> Minimized.Immunization {
+		try .init(immunization: self)
+	}
+}
