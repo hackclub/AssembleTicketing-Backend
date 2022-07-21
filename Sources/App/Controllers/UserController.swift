@@ -11,20 +11,20 @@ struct UserController: RouteCollection {
 		admin.get("index", use: adminIndex)
 	}
 
-	func adminIndex(req: Request) async throws -> [User] {
-		return try await User.query(on: req.db).all()
+	func adminIndex(req: Request) async throws -> [User.Response] {
+		return try await User.query(on: req.db).all().map({ try $0.response() })
 	}
 
 	/// Get or create the user (if it doesn't exist already).
-	func me(req: Request) async throws -> User {
+	func me(req: Request) async throws -> User.Response {
 		let token = try req.auth.require(AccessToken.self)
 
 		let user = try await User.find(UUID(uuidString: token.subject.value), on: req.db)
 
-
-
 		if let user = user {
-			return user
+			try await user.$vaccinationData.load(on: req.db)
+
+			return try user.response()
 		} else {
 			let sendable = try await req.getUserDetails()
 
@@ -38,7 +38,7 @@ struct UserController: RouteCollection {
 
 			try await user.save(on: req.db)
 
-			return user
+			return try user.response()
 		}
 	}
 }

@@ -24,16 +24,22 @@ final class VaccinationData: Model, Content {
 	@Field(key: "verified_vaccination")
 	var verifiedVaccination: Minimized.VerifiedVaccinationRecord?
 
+	/// The date on which the vaccination was last modified.
+	@Field(key: "modified_date")
+	var lastModified: Date
+
 	init() { }
 
 	init(id: UUID? = nil, verifiedVaccination: Minimized.VerifiedVaccinationRecord) {
 		self.id = id
 		self.verifiedVaccination = verifiedVaccination
+		self.lastModified = Date()
 	}
 
 	init(id: UUID? = nil, photoData: Data, photoType: HTTPMediaType) {
 		self.id = id
 		self.photoData = photoData
 		self.photoType = photoType
+		self.lastModified = Date()
 	}
 }

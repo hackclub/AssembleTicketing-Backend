@@ -32,6 +32,7 @@ public func configure(_ app: Application) throws {
 	app.migrations.add(User.Create())
 	app.migrations.add(VaccinationData.Create())
 	app.migrations.add(VaccinationData.AddMIMEType())
+	app.migrations.add(VaccinationData.AddDate())
 
 	/// Get issuers.
 	guard let issuerListURL = Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {

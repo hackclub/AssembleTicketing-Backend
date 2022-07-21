@@ -20,6 +20,7 @@ struct VaccinationController: RouteCollection {
 
 		admin.group(":userID") { vaccination in
 			vaccination.post("status", use: adminSet)
+			vaccination.get(use: adminGet)
 		}
     }
 
@@ -29,7 +30,7 @@ struct VaccinationController: RouteCollection {
 
 	/// Allows an admin to set a user's vaccination status manually (e.g, for `humanReviewRequired`).
 	/// - Returns: A `User` object with the vaccination data prefilled.
-	func adminSet(req: Request) async throws -> User {
+	func adminSet(req: Request) async throws -> User.Response {
 		let update = try req.content.decode(AdminVaccinationUpdate.self)
 
 		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
@@ -42,7 +43,18 @@ struct VaccinationController: RouteCollection {
 
 		try await user.$vaccinationData.load(on: req.db)
 
-		return user
+		return try user.response()
+	}
+
+	/// Allows an admin to get more detailed information about a user (including vaccination data).
+	func adminGet(req: Request) async throws -> User.Response {
+		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+			throw Abort(.notFound, reason: "No such user")
+		}
+
+		try await user.$vaccinationData.load(on: req.db)
+
+		return try .init(user)
 	}
 
 	struct HealthCardData: Content {
@@ -60,24 +72,8 @@ struct VaccinationController: RouteCollection {
 		}
 	}
 
-	/// The response to a vaccination verification request.
-	struct VaccinationResponse: Content {
-		/// The status of the verification after upload.
-		var status: User.VaccinationVerificationStatus
-		/// The vaccination record that was saved.
-		var record: RecordType
-
-		/// The types of vaccination record.
-		enum RecordType: Codable {
-			/// A verified vaccination record.
-			case verified(record: Minimized.VerifiedVaccinationRecord)
-			/// An image vaccination record.
-			case image(data: Data, filetype: HTTPMediaType)
-		}
-	}
-
 	/// Upload a verified vaccination record. Note: Will replace the user's previous vaccination record.
-	func uploadVerified(req: Request) async throws -> VaccinationResponse {
+	func uploadVerified(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
 		let healthCard = try req.content.decode(HealthCardData.self)
 		let (issuerName, payload) = try await healthCard.verify()
@@ -136,9 +132,13 @@ struct VaccinationController: RouteCollection {
 		return try await user.update(status: .verified, record: .verified(record: record), on: req.db)
 	}
 
-	func uploadImage(req: Request) async throws -> VaccinationResponse {
+	func uploadImage(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
 		let input = try req.content.decode(File.self)
+
+		print(input)
+		print(input.filename)
+		print(input.contentType)
 
 		guard let contentType = input.contentType, contentType.type == "image" else {
 			throw Abort(.badRequest, reason: "Must be an image.")
@@ -149,7 +149,7 @@ struct VaccinationController: RouteCollection {
 		return try await user.update(status: .humanReviewRequired, record: .image(data: data, filetype: contentType), on: req.db)
 	}
 
-	func view(req: Request) async throws -> VaccinationResponse {
+	func view(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
 
 		guard let vaccinationData = try await user.$vaccinationData.get(on: req.db) else {
@@ -160,15 +160,42 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.notFound, reason: "No data in vaccination record.")
 		}
 
-		return .init(status: user.vaccinationStatus, record: record)
+		return .init(status: user.vaccinationStatus, record: record, lastUpdated: vaccinationData.lastModified)
 	}
 }
 
 extension SmartHealthCard.Payload: Content { }
 
 extension User {
+	/// A version of User meant to be sent over the wire with a VaccinationResponse.
+	struct Response: Content {
+		var id: UUID
+		var name: String
+		var email: String
+		var vaccinationData: VaccinationData.Response?
+
+		/// Creates a Response from a User. Will include vaccination data if eager-loaded.
+		init(_ user: User) throws {
+			self.id = try user.requireID()
+			self.name = user.name
+			self.email = user.email
+
+			// Weird double-question-mark to handle loading (only send the value if pre-loaded)
+			if let wrappedVaccinationData = user.$vaccinationData.value, let vaccinationData = wrappedVaccinationData, let record = vaccinationData.record {
+				self.vaccinationData = .init(status: user.vaccinationStatus, record: record, lastUpdated: vaccinationData.lastModified)
+			}
+		}
+	}
+
+	/// Get a response object for the current user.
+	func response() throws -> Response {
+		return try .init(self)
+	}
+}
+
+extension User {
 	/// Updates a user and returns a VaccinationResponse in one fell swoop
-	func update(status: VaccinationVerificationStatus, record: VaccinationController.VaccinationResponse.RecordType, on db: Database) async throws -> VaccinationController.VaccinationResponse {
+	func update(status: VaccinationVerificationStatus, record: VaccinationData.Response.RecordType, on db: Database) async throws -> VaccinationData.Response {
 		self.vaccinationStatus = status
 
 		try await self.save(on: db)
@@ -177,15 +204,17 @@ extension User {
 			try await oldVaccinationData.delete(on: db)
 		}
 
-		// Add the new data
-		try await self.$vaccinationData.create(VaccinationData(record), on: db)
+		let vaccinationData = VaccinationData(record)
 
-		return .init(status: status, record: record)
+		// Add the new data
+		try await self.$vaccinationData.create(vaccinationData, on: db)
+
+		return .init(status: status, record: record, lastUpdated: vaccinationData.lastModified)
 	}
 }
 
 extension VaccinationData {
-	convenience init(_ record: VaccinationController.VaccinationResponse.RecordType) {
+	convenience init(_ record: VaccinationData.Response.RecordType) {
 		switch record {
 			case .image(let imageData, let fileType):
 				self.init(photoData: imageData, photoType: fileType)
@@ -194,7 +223,7 @@ extension VaccinationData {
 		}
 	}
 
-	var record: VaccinationController.VaccinationResponse.RecordType? {
+	var record: VaccinationData.Response.RecordType? {
 		if let verifiedVaccination = self.verifiedVaccination {
 			return .verified(record: verifiedVaccination)
 		} else if let imageVaccination = self.photoData, let imageType = self.photoType {
@@ -203,10 +232,31 @@ extension VaccinationData {
 		return nil
 	}
 
-	func getResponse(on db: Database) async throws -> VaccinationController.VaccinationResponse {
+	func getResponse(on db: Database) async throws -> VaccinationData.Response {
 		guard let record = self.record else {
 			throw Abort(.notFound, reason: "No data in vaccination record.")
 		}
-		return try await .init(status: self.$user.get(on: db).vaccinationStatus, record: record)
+		return try await .init(status: self.$user.get(on: db).vaccinationStatus, record: record, lastUpdated: lastModified)
+	}
+}
+
+
+extension VaccinationData {
+	/// The response to a vaccination verification request.
+	struct Response: Content {
+		/// The status of the verification after upload.
+		var status: User.VaccinationVerificationStatus
+		/// The vaccination record that was saved.
+		var record: RecordType
+		/// The time the record was last updated.
+		var lastUpdated: Date
+
+		/// The types of vaccination record.
+		enum RecordType: Codable {
+			/// A verified vaccination record.
+			case verified(record: Minimized.VerifiedVaccinationRecord)
+			/// An image vaccination record.
+			case image(data: Data, filetype: HTTPMediaType)
+		}
 	}
 }
