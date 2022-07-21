@@ -60,9 +60,12 @@ struct VaccinationController: RouteCollection {
 	struct HealthCardData: Content {
 		var qr: String?
 		var qrChunks: [String]?
+		var jws: String?
 
 		func verify() async throws -> (issuerName: String, payload: SmartHealthCard.Payload) {
-			if let qr = qr {
+			if let jws = jws {
+				return try await SmartHealthCard.verify(jws: jws)
+			} else if let qr = qr {
 				return try await SmartHealthCard.verify(qr: qr)
 			} else if let qrChunks = qrChunks {
 				return try await SmartHealthCard.verify(qrChunks: qrChunks)
