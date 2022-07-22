@@ -80,8 +80,11 @@ struct VaccinationController: RouteCollection {
 	/// Upload a verified vaccination record. Note: Will replace the user's previous vaccination record.
 	func uploadVerified(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
+		req.logger.log(level: .debug, "Got user")
 		let healthCard = try req.content.decode(HealthCardData.self)
+		req.logger.log(level: .debug, "Decoded health card")
 		let (issuerName, payload) = try await healthCard.verify()
+		req.logger.log(level: .debug, "Verified health card")
 
 		guard payload.verifiableCredential.type.contains(.covid19) &&
 				payload.verifiableCredential.type.contains(.immunization) &&
@@ -89,15 +92,24 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.badRequest, reason: "The uploaded card wasn't a COVID immunization record.")
 		}
 
+		req.logger.log(level: .debug, "Checked credential type")
+
 		var healthRecord = try payload.verifiableCredential.credentialSubject.fhirBundle.minify()
+
+		req.logger.log(level: .debug, "Minified health card")
 
 		healthRecord.immunizations.sort { lhs, rhs in
 			lhs.date < rhs.date
 		}
 
+		req.logger.log(level: .debug, "Sorted immunizations")
+
 		guard healthRecord.immunizations.count >= 2 else {
 			throw Abort(.badRequest, reason: "The uploaded card only has \(healthRecord.immunizations.count) immunization\(healthRecord.immunizations.count == 1 ? "" : "s") against COVID-19. If you think this is a mistake, check to see if there's another card in the list.")
 		}
+
+
+		req.logger.log(level: .debug, "Checked immunization count")
 
 		// TODO: Make this configurable.
 		let assembleDate = Date(timeIntervalSince1970: 1657495648)
@@ -106,6 +118,9 @@ struct VaccinationController: RouteCollection {
 		guard healthRecord.immunizations[1].date.timeIntervalSince(assembleDate) < -(60 * 60 * 24 * 14) else {
 			throw Abort(.conflict, reason: "Your second shot is too recent for Assemble.")
 		}
+
+
+		req.logger.log(level: .debug, "Checked vaccination date.")
 
 		let splitNames = user.name.split(separator: " ")
 		guard let firstName = splitNames.first,
@@ -116,6 +131,9 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.badRequest, reason: "We can't parse this name.")
 		}
 
+
+		req.logger.log(level: .debug, "Parsed name")
+
 		let record = Minimized.VerifiedVaccinationRecord(
 			issuer: Minimized.Issuer(
 				name: issuerName,
@@ -125,6 +143,9 @@ struct VaccinationController: RouteCollection {
 			secondShotDate: healthRecord.immunizations[1].date
 		)
 
+
+		req.logger.log(level: .debug, "Generated record")
+
 		guard
 			(
 				firstName.lowercased() == patientFirstName.lowercased() ||
@@ -133,6 +154,8 @@ struct VaccinationController: RouteCollection {
 		else {
 			return try await user.update(status: .verifiedWithDiscrepancy, record: .verified(record: record), on: req.db)
 		}
+
+		req.logger.log(level: .debug, "Names matched")
 
 		return try await user.update(status: .verified, record: .verified(record: record), on: req.db)
 	}
