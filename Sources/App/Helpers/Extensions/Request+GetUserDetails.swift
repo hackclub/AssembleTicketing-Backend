@@ -6,7 +6,7 @@ extension Request {
 			throw Abort(.badRequest, reason: "Missing authorization header.")
 		}
 
-		let userRequest = try await self.client.get("https://api.allotrope.id/users/me", headers: .init([
+		let userRequest = try await self.client.get(URI(stringLiteral: idAPIURL.appendingPathComponent("/users/me").absoluteString), headers: .init([
 			("Authorization", "Bearer \(authorizationHeader.token)")
 		]))
 
