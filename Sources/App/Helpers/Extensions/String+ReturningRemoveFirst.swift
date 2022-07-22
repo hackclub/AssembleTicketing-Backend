@@ -8,7 +8,7 @@ extension String {
 	///
 	/// ```var bugs = ["Aphid", "Bumblebee", "Cicada", "Damselfly", "Earwig"]
 	/// bugs.removeFirst(3)
-	/// print(bugs)
+	/// req.logger.log(.debug, bugs)
 	/// // Prints "["Damselfly", "Earwig"]"
 	/// ```
 	/// Calling this method may invalidate any existing indices for use with this collection.

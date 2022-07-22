@@ -64,14 +64,19 @@ struct VaccinationController: RouteCollection {
 		var qrChunks: [String]?
 		var jws: String?
 
-		func verify() async throws -> (issuerName: String, payload: SmartHealthCard.Payload) {
+		func verify(with req: Request) async throws -> (issuerName: String, payload: SmartHealthCard.Payload) {
+			req.logger.log(level: .debug, "verify")
 			if let jws = jws {
-				return try await SmartHealthCard.verify(jws: jws)
+				req.logger.log(level: .debug, "jws")
+				return try await SmartHealthCard.verify(jws: jws, with: req)
 			} else if let qr = qr {
-				return try await SmartHealthCard.verify(qr: qr)
+				req.logger.log(level: .debug, "qr")
+				return try await SmartHealthCard.verify(qr: qr, with: req)
 			} else if let qrChunks = qrChunks {
-				return try await SmartHealthCard.verify(qrChunks: qrChunks)
+				req.logger.log(level: .debug, "qrChunks")
+				return try await SmartHealthCard.verify(qrChunks: qrChunks, with: req)
 			} else {
+				req.logger.log(level: .debug, "badRequest")
 				throw Abort(.badRequest, reason: "Specify chunks or single QR code.")
 			}
 		}
@@ -83,7 +88,9 @@ struct VaccinationController: RouteCollection {
 		req.logger.log(level: .debug, "Got user")
 		let healthCard = try req.content.decode(HealthCardData.self)
 		req.logger.log(level: .debug, "Decoded health card")
-		let (issuerName, payload) = try await healthCard.verify()
+
+		let (issuerName, payload) = try await healthCard.verify(with: req)
+
 		req.logger.log(level: .debug, "Verified health card")
 
 		guard payload.verifiableCredential.type.contains(.covid19) &&

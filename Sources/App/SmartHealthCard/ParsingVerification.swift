@@ -1,58 +1,16 @@
 import Foundation
+import Vapor
 import SWCompression
 import JWTKit
 
 #if canImport(FoundationNetworking)
 import FoundationNetworking
-
-// NOTE: FoundationNetworking doesn't natively support asynchronous URLSession methods.
-extension URLSession {
-	func data(for request: URLRequest) async throws -> (data: Data, response: URLResponse) {
-		return try await withCheckedThrowingContinuation({ continuation in
-			self.dataTask(with: request) { data, response, error in
-				if let error = error {
-					continuation.resume(throwing: error)
-					return
-				}
-
-				guard let data = data, let response = response else {
-					// Not strictly true, but this should never be called anyways. In the event that it is, Amino should not crash. So we lie to the rest of the app.
-					continuation.resume(throwing: URLError(.cancelled))
-					return
-				}
-
-
-				continuation.resume(returning: (data, response))
-			}
-		})
-	}
-
-	func data(from url: URL) async throws -> (data: Data, response: URLResponse) {
-		return try await withCheckedThrowingContinuation({ continuation in
-			self.dataTask(with: url) { data, response, error in
-				if let error = error {
-					continuation.resume(throwing: error)
-					return
-				}
-
-				guard let data = data, let response = response else {
-					// Not strictly true, but this should never be called anyways. In the event that it is, Amino should not crash. So we lie to the rest of the app.
-					continuation.resume(throwing: URLError(.cancelled))
-					return
-				}
-
-
-				continuation.resume(returning: (data, response))
-			}
-		})
-	}
-}
 #endif
 
 extension SmartHealthCard {
 	/// A function that verifies a series of SMART Health Card chunks.
 	///
-	static func verify(qrChunks: [String]) async throws -> (issuerName: String, payload: Payload) {
+	static func verify(qrChunks: [String], with req: Request) async throws -> (issuerName: String, payload: Payload) {
 		var jwsChunks = try qrChunks.map { chunk -> (chunkNumber: Int, chunk: String) in
 			// Shadow it so we can use the damned thing.
 			var chunk = chunk
@@ -95,14 +53,14 @@ extension SmartHealthCard {
 
 		let jws = orderedChunks.joined(separator: "")
 
-		return try await verify(jws: jws)
+		return try await verify(jws: jws, with: req)
 	}
 
 	/// A function that verifies a SMART Health Card from a QR Code's representation.
 	///
 	/// - Parameters:
 	///   - qr: The string that you get from decoding a SMART Health Card QR code.
-	public static func verify(qr: String) async throws -> (issuerName: String, payload: Payload) {
+	public static func verify(qr: String, with req: Request) async throws -> (issuerName: String, payload: Payload) {
 		// Shadow the thing so we can mutate it
 		var qr = qr
 		// Remove the prefix.
@@ -119,7 +77,7 @@ extension SmartHealthCard {
 
 		let jws = try decodeIgnoringHeader(body: qr)
 
-		return try await verify(jws: jws)
+		return try await verify(jws: jws, with: req)
 	}
 
 	/// A function that decodes a SMART Health Card body portion or chunk.
@@ -145,41 +103,43 @@ extension SmartHealthCard {
 	///
 	/// - Parameters:
 	///   - jws: A string containing the JSON Web Signature format version of the health card.
-	public static func verify(jws: String) async throws -> (issuerName: String, payload: Payload) {
-		print("verify jws called")
+	public static func verify(jws: String, with req: Request) async throws -> (issuerName: String, payload: Payload) {
+		
+		req.logger.log(level: .debug, "verify jws called")
 
 		let (issuer, kid, name) = try getInfo(from: jws)
 
-		print("got jws data")
+		req.logger.log(level: .debug, "got jws data")
 
 		let decoder = JSONDecoder()
 		decoder.dateDecodingStrategy = .secondsSince1970
 
-		let (jwksData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/jwks.json"))
-		print("got jwks")
-		let jwks = try decoder.decode(JWKS.self, from: jwksData)
+		let clientResponse = try await req.client.get(URI(stringLiteral: issuer.appendingPathComponent(".well-known/jwks.json").absoluteString))
 
-		print("decoded jwks")
+		req.logger.log(level: .debug, "got jwks response")
+
+		let jwks = try clientResponse.content.decode(JWKS.self)
+
+		req.logger.log(level: .debug, "decoded jwks")
 
 		let signers = JWTSigners()
 		try signers.use(jwks: jwks)
 
-		print("using jwks")
+		req.logger.log(level: .debug, "using jwks")
 
 		let payload = try signers.verify(jws, as: Payload.self)
 
-		print("verified key")
+		req.logger.log(level: .debug, "verified key")
 
 		if let rid = payload.verifiableCredential.rid {
-			let (revocationData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/crl/\(kid).json"))
 
+			let clientResponse = try await req.client.get(URI(stringLiteral: issuer.appendingPathComponent(".well-known/crl/\(kid).json").absoluteString))
 
-			print("got revocation list")
+			req.logger.log(level: .debug, "got revocations response")
 
-			let revocations = try decoder.decode(RevocationData.self, from: revocationData)
+			let revocations = try clientResponse.content.decode(RevocationData.self)
 
-
-			print("decoded revocation list")
+			req.logger.log(level: .debug, "decoded revocation list")
 
 			let revocationList = revocations.rids.map { string -> (rid: String, invalidateAllBefore: Date) in
 				let strings = string.split(separator: ".")
@@ -193,7 +153,7 @@ extension SmartHealthCard {
 				return (String(strings[0]), date)
 			}
 
-			print("converted revocation list")
+			req.logger.log(level: .debug, "converted revocation list")
 
 			let firstRevocation = revocationList.first { (listedRID: String, invalidateAllBefore: Date) in
 				guard rid != listedRID else {
@@ -207,13 +167,13 @@ extension SmartHealthCard {
 				return false
 			}
 
-			print("got first revocation")
+			req.logger.log(level: .debug, "got first revocation")
 
 			guard firstRevocation == nil else {
 				throw VerificationError.revoked
 			}
 		}
-		print("about to return")
+		req.logger.log(level: .debug, "about to return")
 
 		return (name, payload)
 	}
