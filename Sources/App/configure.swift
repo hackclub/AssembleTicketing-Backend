@@ -11,12 +11,33 @@ public func configure(_ app: Application) throws {
 
 	app.routes.defaultMaxBodySize = "10mb"
 
+	// CORS
+	let corsConfiguration = CORSMiddleware.Configuration(
+		allowedOrigin: .all,
+		allowedMethods: [.GET, .POST, .PUT, .OPTIONS, .DELETE, .PATCH],
+		allowedHeaders: [
+			.accept,
+			.authorization,
+			.authenticationInfo,
+			.contentType,
+			.origin,
+			.xRequestedWith,
+			.userAgent,
+			.accessControlAllowOrigin,
+			.accessControlAllowCredentials
+		],
+		allowCredentials: true
+	)
+	let cors = CORSMiddleware(configuration: corsConfiguration)
+	// cors middleware should come before default error middleware using `at: .beginning`
+	app.middleware.use(cors, at: .beginning)
+
     app.databases.use(.postgres(
         hostname: Environment.get("DATABASE_HOST") ?? "localhost",
         port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? PostgresConfiguration.ianaPortNumber,
-        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
+        username: Environment.get("DATABASE_USERNAME") ?? "vapor",
         password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-        database: Environment.get("DATABASE_NAME") ?? "vapor_database"
+        database: Environment.get("DATABASE_NAME") ?? "assemble_ticketing"
     ), as: .psql)
 
     // register routes
@@ -61,3 +82,4 @@ let nicknames = try! decoder.decode([String: [String]].self, from: Data(contents
 
 // TODO: Make this configurable
 let assembleOrgID = UUID(uuidString: "8ceeeff2-276d-4e73-93a4-eaa33bd43677")!
+let clientURL: URL = URL(string: Environment.get("CLIENT_URL") ?? "https://assemble-preflight-web.hackclub.dev/")!

@@ -6,13 +6,15 @@ import JWTKit
 import ModelsR4
 import NIOFoundationCompat
 
+
 struct VaccinationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let vaccinations = routes.grouped("vaccinations")
 
         vaccinations.post("verified", use: uploadVerified)
 		let image = vaccinations.grouped("image")
-		image.post(use: uploadImage)
+		image.post("base64", use: uploadImageBase64)
+		image.post("multipart", use: uploadImage)
 		vaccinations.get(use: view)
 		let admin = vaccinations
 			.grouped(EnsureAdminUserMiddleware())
@@ -84,7 +86,7 @@ struct VaccinationController: RouteCollection {
 		guard payload.verifiableCredential.type.contains(.covid19) &&
 				payload.verifiableCredential.type.contains(.immunization) &&
 				payload.verifiableCredential.type.contains(.healthCard) else {
-			throw Abort(.badRequest, reason: "Wrong type of health card.")
+			throw Abort(.badRequest, reason: "The uploaded card wasn't a COVID immunization record.")
 		}
 
 		var healthRecord = try payload.verifiableCredential.credentialSubject.fhirBundle.minify()
@@ -94,7 +96,7 @@ struct VaccinationController: RouteCollection {
 		}
 
 		guard healthRecord.immunizations.count >= 2 else {
-			throw Abort(.badRequest, reason: "Not enough immunizations against COVID-19.")
+			throw Abort(.badRequest, reason: "The uploaded card only has \(healthRecord.immunizations.count) immunization\(healthRecord.immunizations.count == 1 ? "" : "s") against COVID-19. If you think this is a mistake, check to see if there's another card in the list.")
 		}
 
 		// TODO: Make this configurable.
@@ -102,7 +104,7 @@ struct VaccinationController: RouteCollection {
 
 		// Check that their second shot is in time for the event.
 		guard healthRecord.immunizations[1].date.timeIntervalSince(assembleDate) < -(60 * 60 * 24 * 14) else {
-			throw Abort(.conflict, reason: "Vaccination is too recent for Assemble.")
+			throw Abort(.conflict, reason: "Your second shot is too recent for Assemble.")
 		}
 
 		let splitNames = user.name.split(separator: " ")
@@ -135,13 +137,25 @@ struct VaccinationController: RouteCollection {
 		return try await user.update(status: .verified, record: .verified(record: record), on: req.db)
 	}
 
+	struct Base64Image: Content {
+		var mimeType: HTTPMediaType
+		var data: Data
+	}
+
+	func uploadImageBase64(req: Request) async throws -> VaccinationData.Response {
+		let user = try await req.getUser()
+		let input = try req.content.decode(Base64Image.self)
+
+		guard input.mimeType.type == "image" else {
+			throw Abort(.badRequest, reason: "Must be an image.")
+		}
+
+		return try await user.update(status: .humanReviewRequired, record: .image(data: input.data, filetype: input.mimeType), on: req.db)
+	}
+
 	func uploadImage(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
 		let input = try req.content.decode(File.self)
-
-		print(input)
-		print(input.filename)
-		print(input.contentType)
 
 		guard let contentType = input.contentType, contentType.type == "image" else {
 			throw Abort(.badRequest, reason: "Must be an image.")

@@ -1,0 +1,24 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: mr-smithers-excellent/docker-build-push@v5
+        name: Build and publish a Docker image for ${{ github.repository }}
+        with:
+          image: assembleticketing
+          tags: latest
+          registry: ghcr.io
+          dockerfile: Dockerfile
+          username: ${{ github.repository_owner }}
+          password: ${{ github.token }}
