@@ -13,7 +13,7 @@ public func configure(_ app: Application) throws {
 
 	// CORS
 	let corsConfiguration = CORSMiddleware.Configuration(
-		allowedOrigin: .all,
+		allowedOrigin: .custom(clientURL.absoluteString),
 		allowedMethods: [.GET, .POST, .PUT, .OPTIONS, .DELETE, .PATCH],
 		allowedHeaders: [
 			.accept,
