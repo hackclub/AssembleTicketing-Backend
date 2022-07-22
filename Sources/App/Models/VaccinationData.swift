@@ -34,6 +34,7 @@ final class VaccinationData: Model, Content {
 		self.id = id
 		self.verifiedVaccination = verifiedVaccination
 		self.lastModified = Date()
+		self.photoType = nil
 	}
 
 	init(id: UUID? = nil, photoData: Data, photoType: HTTPMediaType) {
