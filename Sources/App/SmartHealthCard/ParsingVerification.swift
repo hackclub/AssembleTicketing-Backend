@@ -146,23 +146,40 @@ extension SmartHealthCard {
 	/// - Parameters:
 	///   - jws: A string containing the JSON Web Signature format version of the health card.
 	public static func verify(jws: String) async throws -> (issuerName: String, payload: Payload) {
+		print("verify jws called")
+
 		let (issuer, kid, name) = try getInfo(from: jws)
+
+		print("got jws data")
 
 		let decoder = JSONDecoder()
 		decoder.dateDecodingStrategy = .secondsSince1970
 
 		let (jwksData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/jwks.json"))
+		print("got jwks")
 		let jwks = try decoder.decode(JWKS.self, from: jwksData)
+
+		print("decoded jwks")
 
 		let signers = JWTSigners()
 		try signers.use(jwks: jwks)
 
+		print("using jwks")
+
 		let payload = try signers.verify(jws, as: Payload.self)
+
+		print("verified key")
 
 		if let rid = payload.verifiableCredential.rid {
 			let (revocationData, _) = try await URLSession.shared.data(from: issuer.appendingPathComponent(".well-known/crl/\(kid).json"))
 
+
+			print("got revocation list")
+
 			let revocations = try decoder.decode(RevocationData.self, from: revocationData)
+
+
+			print("decoded revocation list")
 
 			let revocationList = revocations.rids.map { string -> (rid: String, invalidateAllBefore: Date) in
 				let strings = string.split(separator: ".")
@@ -176,6 +193,8 @@ extension SmartHealthCard {
 				return (String(strings[0]), date)
 			}
 
+			print("converted revocation list")
+
 			let firstRevocation = revocationList.first { (listedRID: String, invalidateAllBefore: Date) in
 				guard rid != listedRID else {
 					return true
@@ -188,10 +207,13 @@ extension SmartHealthCard {
 				return false
 			}
 
+			print("got first revocation")
+
 			guard firstRevocation == nil else {
 				throw VerificationError.revoked
 			}
 		}
+		print("about to return")
 
 		return (name, payload)
 	}
