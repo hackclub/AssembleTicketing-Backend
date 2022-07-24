@@ -5,6 +5,13 @@ import Foundation
 struct AccessToken: JWTPayload, Authenticatable {
 	func verify(using signer: JWTSigner) throws {
 		try self.expiration.verifyNotExpired()
+		// TODO: Remove this compatibility check
+		do {
+			// TODO: Make this configurable
+			try self.audience.verifyIntendedAudience(includes: "https://api.ticketing.assemble.hackclub.com/")
+		} catch {
+			try self.audience.verifyIntendedAudience(includes: "https://indocs.api.allotrope.dev/")
+		}
 	}
 
 	var name: String
