@@ -5,6 +5,7 @@ struct UserController: RouteCollection {
 	func boot(routes: RoutesBuilder) throws {
 		let users = routes.grouped("users")
 		users.get(use: me)
+		users.get("small", use: me)
 		let admin = users
 			.grouped(EnsureAdminUserMiddleware())
 			.grouped("admin")

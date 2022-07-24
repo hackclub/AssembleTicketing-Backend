@@ -82,5 +82,5 @@ let nicknames = try! decoder.decode([String: [String]].self, from: Data(contents
 
 // TODO: Make this configurable
 let assembleOrgID = UUID(uuidString: "8ceeeff2-276d-4e73-93a4-eaa33bd43677")!
-let clientURL: URL = URL(string: Environment.get("CLIENT_URL") ?? "https://ticketing.assemble.hackclub.com/")!
-let idAPIURL: URL = URL(string: Environment.get("ID_URL") ?? "https://api.id.assemble.hackclub.com/")!
+let clientURL: URL = URL(string: Environment.get("CLIENT_URL") ?? "https://ticketing.assemble.hackclub.com")!
+let idAPIURL: URL = URL(string: Environment.get("ID_URL") ?? "https://api.id.assemble.hackclub.com")!
