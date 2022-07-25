@@ -6,9 +6,17 @@ extension Request {
 			throw Abort(.badRequest, reason: "Missing authorization header.")
 		}
 
-		let userRequest = try await self.client.get(URI(stringLiteral: idAPIURL.appendingPathComponent("/users/me").absoluteString), headers: .init([
-			("Authorization", "Bearer \(authorizationHeader.token)")
-		]))
+		let userRequest = try await self.client.get(
+			URI(stringLiteral:
+					self.ticketingConfiguration.idAPIURL
+					.appendingPathComponent("/users/me").absoluteString
+			   ),
+			headers: .init(
+				[
+					("Authorization", "Bearer \(authorizationHeader.token)")
+				]
+			)
+		)
 
 		return try userRequest.content.decode(SendableUser.self)
 	}

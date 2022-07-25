@@ -30,7 +30,7 @@ struct UserController: RouteCollection {
 			let sendable = try await req.getUserDetails()
 
 			guard sendable.organizations.contains(where: { orgRole in
-				orgRole.organizationID == assembleOrgID
+				orgRole.organizationID == req.ticketingConfiguration.organizationID
 			}) else {
 				throw Abort(.forbidden, reason: "You're not in the Assemble org.")
 			}

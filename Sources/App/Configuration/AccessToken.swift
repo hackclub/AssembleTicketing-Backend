@@ -12,6 +12,7 @@ struct AccessToken: JWTPayload, Authenticatable {
 		} catch {
 			try self.audience.verifyIntendedAudience(includes: "https://indocs.api.allotrope.dev/")
 		}
+		// TODO: Make tokens actually require an issuer of the configured ID URL
 	}
 
 	var name: String

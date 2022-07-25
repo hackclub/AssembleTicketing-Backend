@@ -1,9 +1,9 @@
 import Foundation
 
 extension SendableUser {
-	var isAssembleAdmin: Bool {
+	func isAssembleAdmin(on orgID: UUID) -> Bool {
 		self.organizations.contains { orgRole in
-			orgRole.organizationID == assembleOrgID &&
+			orgRole.organizationID == orgID &&
 			orgRole.roles.contains("admin")
 		}
 	}

@@ -107,7 +107,7 @@ extension SmartHealthCard {
 		
 		req.logger.log(level: .debug, "verify jws called")
 
-		let (issuer, kid, name) = try getInfo(from: jws)
+		let (issuer, kid, name) = try getInfo(from: jws, with: req.ticketingConfiguration.issuers)
 
 		req.logger.log(level: .debug, "got jws data")
 
@@ -178,7 +178,7 @@ extension SmartHealthCard {
 		return (name, payload)
 	}
 
-	private static func getInfo(from jws: String) throws -> (issuer: URL, keyID: String, issuerName: String) {
+	private static func getInfo(from jws: String, with issuers: Issuers) throws -> (issuer: URL, keyID: String, issuerName: String) {
 		let splitJWS = jws.split(separator: ".")
 
 		let splitJWSData = try splitJWS.map { jwsComponent -> Data in
@@ -194,7 +194,7 @@ extension SmartHealthCard {
 		let headers = try decoder.decode(KeyIDHelper.self, from: splitJWSData[0])
 		let body = try decoder.decode(Payload.self, from: bodyData)
 
-		guard let lookupIssuer = issuers[body.issuer] else {
+		guard let lookupIssuer = issuers.value[body.issuer] else {
 			throw VerificationError.invalidProvider
 		}
 

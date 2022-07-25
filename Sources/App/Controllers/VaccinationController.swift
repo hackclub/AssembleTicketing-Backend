@@ -156,7 +156,7 @@ struct VaccinationController: RouteCollection {
 		guard
 			(
 				firstName.lowercased() == patientFirstName.lowercased() ||
-				nicknames[firstName.lowercased()]?.contains(where: { $0 == patientFirstName.lowercased() }) == true
+				req.ticketingConfiguration.nicknames.value[firstName.lowercased()]?.contains(where: { $0 == patientFirstName.lowercased() }) == true
 			) && lastName.lowercased() == patientLastName.lowercased()
 		else {
 			return try await user.update(status: .verifiedWithDiscrepancy, record: .verified(record: record), on: req.db)
