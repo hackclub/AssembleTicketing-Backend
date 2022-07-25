@@ -18,7 +18,7 @@ struct TicketingConfiguration {
 		guard let issuersURL = URL(string: Environment.get("VCI_ISSUERS_LIST_PATH") ?? "") ?? Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {
 			throw ConfigurationErrors.invalidEnvVar(envVar: "VCI_ISSUERS_LIST_PATH")
 		}
-		guard let nicknamesURL = URL(string: Environment.get("NICKNAMES_LIST_PATH") ?? "") ?? Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {
+		guard let nicknamesURL = URL(string: Environment.get("NICKNAMES_LIST_PATH") ?? "") ?? Bundle.module.url(forResource: "nicknames", withExtension: "json") else {
 			throw ConfigurationErrors.invalidEnvVar(envVar: "NICKNAMES_LIST_PATH")
 		}
 

@@ -31,6 +31,7 @@ extension JSONURLHandler {
 	init(from url: URL) throws {
 		let decoder = JSONDecoder()
 		let data = try Data(contentsOf: url)
+		print(String(data: data, encoding: .utf8))
 		let value = try decoder.decode(Value.self, from: data)
 		self.init(value: value, url: url)
 	}
@@ -50,4 +51,21 @@ struct Issuers: JSONURLHandler {
 	var value: [URL: VCIIssuer]
 
 	var url: URL
+}
+
+// Do this in an extension so we keep the default memberwise intitializer
+extension Issuers {
+	init(from url: URL) throws {
+		let decoder = JSONDecoder()
+		let data = try Data(contentsOf: url)
+		let directory = try decoder.decode(VCIDirectory.self, from: data)
+		let dictionary = directory.toDictionary()
+		self.init(value: dictionary, url: url)
+	}
+}
+
+extension URL: LosslessStringConvertible {
+	public init?(_ description: String) {
+		self.init(string: description)
+	}
 }

@@ -22,4 +22,14 @@ struct VCIIssuer: Codable {
 /// A list of VCI issuers.
 struct VCIDirectory: Codable {
 	var participating_issuers: [VCIIssuer]
+
+	/// Convert the directory to a dictionary with the `iss` URLs as the keys. 
+	func toDictionary() -> [URL: VCIIssuer] {
+		let issuerTuple = participating_issuers.map { issuer in
+			// Uses iss, not canonical, so it's actually unique
+			return (issuer.iss, issuer)
+		}
+
+		return Dictionary(uniqueKeysWithValues: issuerTuple)
+	}
 }

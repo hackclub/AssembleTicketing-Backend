@@ -48,8 +48,29 @@ public func configure(_ app: Application) throws {
 
 	// TODO: Support JWKs.
 	// Keys
-	let accessJWKs = try String(contentsOfFile: Environment.get("ACCESS_KEY_URL")!)
-	try app.jwt.signers.use(jwksJSON: accessJWKs)
+
+	if let accessJWKs = try? String(contentsOfFile: Environment.get(withPrejudice: "ACCESS_KEY_URL")) {
+		try app.jwt.signers.use(jwksJSON: accessJWKs)
+	} else {
+		// Set a semaphore to be able to run async tasks
+		let semaphore = DispatchSemaphore(value: 0)
+		Task {
+			let jwksResponse = try await app.client.get(
+				.init(
+					string: app
+						.ticketingConfiguration
+						.idAPIURL
+						.appendingPathComponent(".well-known/jwks.json")
+						.absoluteString
+				)
+			)
+			semaphore.signal()
+
+			let jwks = try jwksResponse.content.decode(JWKS.self)
+			try app.jwt.signers.use(jwks: jwks)
+		}
+		semaphore.wait()
+	}
 
 	// Migrations
 	app.migrations.add(User.Create())
