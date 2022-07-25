@@ -31,7 +31,6 @@ extension JSONURLHandler {
 	init(from url: URL) throws {
 		let decoder = JSONDecoder()
 		let data = try Data(contentsOf: url)
-		print(String(data: data, encoding: .utf8))
 		let value = try decoder.decode(Value.self, from: data)
 		self.init(value: value, url: url)
 	}
