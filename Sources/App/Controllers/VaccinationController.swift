@@ -6,16 +6,16 @@ import JWTKit
 import ModelsR4
 import NIOFoundationCompat
 
-
 struct VaccinationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let vaccinations = routes.grouped("vaccinations")
+		vaccinations.get(use: view)
+		vaccinations.get(":hash", use: view)
 
         vaccinations.post("verified", use: uploadVerified)
 		let image = vaccinations.grouped("image")
 		image.post("base64", use: uploadImageBase64)
 		image.post("multipart", use: uploadImage)
-		vaccinations.get(use: view)
 		let admin = vaccinations
 			.grouped(EnsureAdminUserMiddleware())
 			.grouped("admin")
@@ -23,6 +23,7 @@ struct VaccinationController: RouteCollection {
 		admin.group(":userID") { vaccination in
 			vaccination.post("status", use: adminSet)
 			vaccination.get(use: adminGet)
+			vaccination.get(":hash", use: adminGet)
 		}
     }
 
@@ -31,35 +32,61 @@ struct VaccinationController: RouteCollection {
 	}
 
 	/// Allows an admin to set a user's vaccination status manually (e.g, for `humanReviewRequired`).
-	/// - Returns: A `User` object with the vaccination data prefilled.
-	func adminSet(req: Request) async throws -> User.Response {
+	/// - Returns: A `VaccinationData.Response` object with the user's new vaccination data.
+	func adminSet(req: Request) async throws -> VaccinationData.Response {
 		let update = try req.content.decode(AdminVaccinationUpdate.self)
 
 		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
-			throw Abort(.notFound, reason: "No such user")
+			throw Abort(.notFound, reason: "There's no user with that ID.")
 		}
 
+		guard let vaccinationData = try await user.$vaccinationData.get(on: req.db) else {
+			throw Abort(.notFound, reason: "That user hasn't uploaded any vaccination data.")
+		}
+
+		guard let vaccinationRecord = vaccinationData.record else {
+			throw Abort(.notFound, reason: "That user's vaccination data is empty.")
+		}
+
+		// Update the status and modification date.
 		user.vaccinationStatus = update.newStatus
+		vaccinationData.lastModified = Date()
 
 		try await user.save(on: req.db)
 
-		try await user.$vaccinationData.load(on: req.db)
-
-		return try user.response()
+		return .init(status: user.vaccinationStatus, record: vaccinationRecord, lastUpdated: Date())
 	}
 
 	/// Allows an admin to get more detailed information about a user (including vaccination data).
-	func adminGet(req: Request) async throws -> User.Response {
+	func adminGet(req: Request) async throws -> VaccinationData.Response {
 		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
 			throw Abort(.notFound, reason: "No such user")
 		}
 
-		try await user.$vaccinationData.load(on: req.db)
+		guard let vaccinationData = try await user.$vaccinationData.get(on: req.db) else {
+			throw Abort(.notFound, reason: "That user hasn't uploaded any vaccination data.")
+		}
 
-		return try .init(user)
+		guard let vaccinationRecord = vaccinationData.record else {
+			throw Abort(.notFound, reason: "That user's vaccination data is empty.")
+		}
+
+		let response = VaccinationData.Response(status: user.vaccinationStatus, record: vaccinationRecord, lastUpdated: vaccinationData.lastModified)
+
+		if let hash = req.parameters.get("hash") {
+			let responseHash = response
+				.sha256()
+				.base64URLEncodedString()
+
+			guard responseHash != hash else {
+				throw Abort(.notModified, reason: "Data not modified.")
+			}
+		}
+
+		return response
 	}
 
-	struct HealthCardData: Content {
+	struct HealthCardUpload: Content {
 		var qr: String?
 		var qrChunks: [String]?
 		var jws: String?
@@ -86,7 +113,7 @@ struct VaccinationController: RouteCollection {
 	func uploadVerified(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
 		req.logger.log(level: .debug, "Got user")
-		let healthCard = try req.content.decode(HealthCardData.self)
+		let healthCard = try req.content.decode(HealthCardUpload.self)
 		req.logger.log(level: .debug, "Decoded health card")
 
 		let (issuerName, payload) = try await healthCard.verify(with: req)
@@ -150,7 +177,6 @@ struct VaccinationController: RouteCollection {
 			secondShotDate: healthRecord.immunizations[1].date
 		)
 
-
 		req.logger.log(level: .debug, "Generated record")
 
 		guard
@@ -200,14 +226,48 @@ struct VaccinationController: RouteCollection {
 		let user = try await req.getUser()
 
 		guard let vaccinationData = try await user.$vaccinationData.get(on: req.db) else {
-			throw Abort(.notFound, reason: "No vaccination for this user")
+			throw Abort(.notFound, reason: "You haven't uploaded a vaccination yet.")
 		}
 
-		guard let record = vaccinationData.record else {
-			throw Abort(.notFound, reason: "No data in vaccination record.")
+		guard let vaccinationRecord = vaccinationData.record else {
+			throw Abort(.notFound, reason: "There was no data in your vaccination record.")
 		}
 
-		return .init(status: user.vaccinationStatus, record: record, lastUpdated: vaccinationData.lastModified)
+		let response = VaccinationData.Response(status: user.vaccinationStatus, record: vaccinationRecord, lastUpdated: Date())
+
+		if let hash = req.parameters.get("hash") {
+			guard response.sha256().base64URLEncodedString() == hash else {
+				throw Abort(.notModified, reason: "Data not modified.")
+			}
+		}
+
+		return response
+	}
+}
+
+extension VaccinationData.Response {
+	func sha256() -> Data {
+		var hasher = SHA256()
+
+		// Convert the typeString for the record (e.g, "verified" or "image") to a UTF-8 blob of data
+		let recordData = Data(record.typeString.utf8)
+		// Convert the status type name to a UTF-8 blob of data
+		let statusData = Data(status.rawValue.utf8)
+		// Convert the time to second-based UNIX epoch time and the convert that to data
+		var intLastModified = Int(self.lastUpdated.timeIntervalSince1970)
+		let lastModifiedData = Data(
+			bytes: &intLastModified,
+			count: MemoryLayout.size(ofValue: intLastModified)
+		)
+
+		hasher.update(data: recordData)
+		hasher.update(data: statusData)
+		hasher.update(data: lastModifiedData)
+		let hashed = hasher.finalize()
+		let hashedBytes = hashed.compactMap { UInt8($0) }
+		let data = Data(hashedBytes)
+
+		return data
 	}
 }
 

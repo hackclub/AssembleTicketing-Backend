@@ -18,6 +18,16 @@ extension VaccinationData {
 			case verified(record: Minimized.VerifiedVaccinationRecord)
 			/// An image vaccination record.
 			case image(data: Data, filetype: HTTPMediaType)
+
+			/// A string that represents the type.
+			var typeString: String {
+				switch self {
+					case .verified:
+						return "verified"
+					case .image:
+						return "image"
+				}
+			}
 		}
 	}
 }
