@@ -8,14 +8,21 @@ import NIOFoundationCompat
 
 struct VaccinationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        let vaccinations = routes.grouped("vaccinations")
-		vaccinations.get(use: view)
-		vaccinations.get(":hash", use: view)
+		let authed = routes.grouped([AccessToken.authenticator(), AccessToken.guardMiddleware()])
+		// Also allows cookie-based auth
+		let cookieAuthed = routes.grouped([AccessToken.cookieAcceptingAuthenticator(), AccessToken.guardMiddleware()])
 
+        let vaccinations = authed.grouped("vaccinations")
         vaccinations.post("verified", use: uploadVerified)
-		let image = vaccinations.grouped("image")
-		image.post("base64", use: uploadImageBase64)
-		image.post("multipart", use: uploadImage)
+		vaccinations.post(["image", "multipart"], use: uploadImage)
+
+		// Cookie supported routes
+		let cookieVaccinations = cookieAuthed.grouped("vaccinations")
+		cookieVaccinations.get(use: view)
+		cookieVaccinations.get(":hash", use: view)
+		cookieVaccinations.post(["image", "base64"], use: uploadImageBase64)
+
+		// Admin routes
 		let admin = vaccinations
 			.grouped(EnsureAdminUserMiddleware())
 			.grouped("admin")
