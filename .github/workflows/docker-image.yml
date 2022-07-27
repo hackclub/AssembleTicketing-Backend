@@ -2,9 +2,8 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: 
+      - "**"
 
 jobs:
   build:
@@ -13,11 +12,29 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Sets env vars for release
+        run: |
+          echo "DOCKER_TAG=latest" >> $GITHUB_ENV
+        if: startsWith(github.ref, 'refs/heads/main')
+        
+      - uses: tj-actions/branch-names@v5.4
+        name: Get branch name
+        id: branch-name
+        
+      - name: Sets env vars for ${{ steps.branch-name.outputs.current_branch }}
+        run: |
+          ref="DOCKER_TAG=${current_branch////-}" 
+          echo $ref >> $GITHUB_ENV
+        env: 
+          current_branch: ${{ steps.branch-name.outputs.current_branch }}
+        if: ${{!startsWith(github.ref, 'refs/heads/main')}}
+
       - uses: mr-smithers-excellent/docker-build-push@v5
         name: Build and publish a Docker image for ${{ github.repository }}
         with:
+          buildArgs: gh_token=${{ secrets.ALLOTROPE_BUILD_TOKEN }}
           image: assembleticketing
-          tags: latest
+          tags: ${{ env.DOCKER_TAG }}
           registry: ghcr.io
           dockerfile: Dockerfile
           username: ${{ github.repository_owner }}
