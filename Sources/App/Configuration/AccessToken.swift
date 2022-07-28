@@ -27,6 +27,15 @@ struct AccessToken: JWTPayload, Authenticatable {
 	var scopes: [String]
 	/// The organizations the token is authorized to modify.
 	var organizations: [NamedID]
+
+	enum CodingKeys: String, CodingKey {
+		case name
+		case issuer = "iss"
+		case subject = "sub"
+		case audience = "aud"
+		case expiration = "exp"
+		case issued = "iat"
+	}
 }
 
 /// Helper struct to have content with a name and an ID.
