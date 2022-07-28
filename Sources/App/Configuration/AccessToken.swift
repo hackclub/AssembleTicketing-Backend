@@ -29,7 +29,7 @@ struct AccessToken: JWTPayload, Authenticatable {
 	var organizations: [NamedID]
 
 	enum CodingKeys: String, CodingKey {
-		case name
+		case name, scopes, organizations
 		case issuer = "iss"
 		case subject = "sub"
 		case audience = "aud"
