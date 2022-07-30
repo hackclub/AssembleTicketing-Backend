@@ -1,5 +1,6 @@
 import Vapor
 import JWT
+import Fluent
 
 struct UserController: RouteCollection {
 	func boot(routes: RoutesBuilder) throws {
@@ -11,6 +12,22 @@ struct UserController: RouteCollection {
 			.grouped("admin")
 		admin.get("index", use: adminIndex)
 		admin.get(":userID", use: adminGet)
+		admin.get(["filtered", "status", ":status"], use: getFilteredStatus)
+	}
+
+	func getFilteredStatus(req: Request) async throws -> [User.Response] {
+		guard let statusString = req.parameters.get("status"), let status = User.VaccinationVerificationStatus(rawValue: statusString) else {
+			throw Abort(.badRequest, reason: "Invalid status.")
+		}
+
+		let filteredUsers = try await User
+			.query(on: req.db)
+			.filter(\.$vaccinationStatus == status)
+			.all()
+
+		return try filteredUsers.map { user in
+			try user.response()
+		}
 	}
 
 	func adminGet(req: Request) async throws -> User.Response {
