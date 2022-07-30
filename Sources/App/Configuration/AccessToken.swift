@@ -36,6 +36,35 @@ struct AccessToken: JWTPayload, Authenticatable {
 		case expiration = "exp"
 		case issued = "iat"
 	}
+
+	enum BackCompatCodingKeys: String, CodingKey {
+		case issuer, subject, audience, expiration, issued
+	}
+
+	// Always encode with the new format (though ticketing doesn't do encode)
+	init(from decoder: Decoder) throws {
+		let newContainer = try decoder.container(keyedBy: CodingKeys.self)
+		self.name = try newContainer.decode(String.self, forKey: .name)
+		self.scopes = try newContainer.decode([String].self, forKey: .scopes)
+		self.organizations = try newContainer.decode([NamedID].self, forKey: .organizations)
+
+		if let issuer = try newContainer.decodeIfPresent(IssuerClaim.self, forKey: .issuer) {
+			// New keys are good, use those
+			self.issuer = issuer
+			self.subject = try newContainer.decode(SubjectClaim.self, forKey: .subject)
+			self.audience = try newContainer.decode(AudienceClaim.self, forKey: .audience)
+			self.expiration = try newContainer.decode(ExpirationClaim.self, forKey: .expiration)
+			self.issued = try newContainer.decode(IssuedAtClaim.self, forKey: .issued)
+		} else {
+			// Use compat keys.
+			let oldContainer = try decoder.container(keyedBy: BackCompatCodingKeys.self)
+			self.issuer = try oldContainer.decode(IssuerClaim.self, forKey: .issuer)
+			self.subject = try oldContainer.decode(SubjectClaim.self, forKey: .subject)
+			self.audience = try oldContainer.decode(AudienceClaim.self, forKey: .audience)
+			self.expiration = try oldContainer.decode(ExpirationClaim.self, forKey: .expiration)
+			self.issued = try oldContainer.decode(IssuedAtClaim.self, forKey: .issued)
+		}
+	}
 }
 
 /// Helper struct to have content with a name and an ID.
