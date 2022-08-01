@@ -1,8 +1,9 @@
 import Fluent
+import Foundation
 
 extension User {
 	/// Updates a user and returns a VaccinationResponse in one fell swoop
-	func update(status: VaccinationVerificationStatus, record: VaccinationData.Response.RecordType, on db: Database) async throws -> VaccinationData.Response {
+	func update(status: VerificationStatus, record: VaccinationData.Response.RecordType, on db: Database) async throws -> VaccinationData.Response {
 		self.vaccinationStatus = status
 
 		try await self.save(on: db)
@@ -11,7 +12,7 @@ extension User {
 			try await oldVaccinationData.delete(on: db)
 		}
 
-		let vaccinationData = VaccinationData(record)
+		let vaccinationData = try VaccinationData(record)
 
 		// Add the new data
 		try await self.$vaccinationData.create(vaccinationData, on: db)
@@ -20,3 +21,16 @@ extension User {
 	}
 }
 
+
+extension VaccinationData {
+	convenience init(_ record: Response.RecordType) throws {
+		switch record {
+			case .image(let image):
+				self.init()
+				self.$image.id = try image.requireID()
+				self.lastModified = Date()
+			case .verified(let record):
+				self.init(verifiedVaccination: record)
+		}
+	}
+}

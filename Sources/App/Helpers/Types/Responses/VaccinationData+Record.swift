@@ -1,22 +1,14 @@
 import Foundation
 import Vapor
+import FluentKit
 
 extension VaccinationData {
-	convenience init(_ record: VaccinationData.Response.RecordType) {
-		switch record {
-			case .image(let imageData, let fileType):
-				self.init(photoData: imageData, photoType: fileType)
-			case .verified(let verifiedRecord):
-				self.init(verifiedVaccination: verifiedRecord)
-		}
-	}
-
-	var record: VaccinationData.Response.RecordType? {
+	func getRecord(on database: Database) async throws -> VaccinationData.Response.RecordType {
 		if let verifiedVaccination = self.verifiedVaccination {
 			return .verified(record: verifiedVaccination)
-		} else if let imageVaccination = self.photoData, let imageType = self.photoType {
-			return .image(data: imageVaccination, filetype: imageType)
+		} else if let image = try await self.$image.get(on: database) {
+			return .image(image: image)
 		}
-		return nil
+		throw Abort(.conflict, reason: "No verified or image vaccination available.")
 	}
 }

@@ -18,25 +18,48 @@ final class User: Model, Content {
 	var email: String
 
 	@Field(key: "vaccinationStatus")
-	var vaccinationStatus: VaccinationVerificationStatus
+	var vaccinationStatus: VerificationStatus
+
+	@Field(key: "testStatus")
+	var testStatus: VerificationStatus
 
 	@OptionalChild(for: \.$user)
 	var vaccinationData: VaccinationData?
 
+	
+
+	@OptionalChild(for: \.$user)
+	var testData: CovidTestData?
+
+	@OptionalChild(for: \.$user)
+	var submissionCode: CovidTestCode?
+
 	init() { }
 
-	init(id: UUID? = nil, name: String, email: String, vaccinationStatus: VaccinationVerificationStatus) {
+	init(id: UUID? = nil, name: String, email: String, vaccinationStatus: VerificationStatus) {
 		self.id = id
 		self.name = name
 		self.email = email
 		self.vaccinationStatus = vaccinationStatus
 	}
 
-	enum VaccinationVerificationStatus: String, Codable {
+	enum VerificationStatus: String, Status {
 		/// Verification is complete.
 		case verified
 		/// Verification worked but there's some discrepancy a human has to look at (generally a name).
 		case verifiedWithDiscrepancy
+		/// Automatic verification doesn't work (generally the upload was an image).
+		case humanReviewRequired
+		/// No data was uploaded.
+		case noData
+		/// The vaccination record was explicitly denied by a human.
+		case denied
+	}
+
+	/// The statuses a user's COVID status can be in.
+	enum TestVerificationStatus: String, Status {
+		/// Verification is complete.
+		case verified
 		/// Automatic verification doesn't work (generally the upload was an image).
 		case humanReviewRequired
 		/// No data was uploaded.

@@ -16,7 +16,7 @@ struct UserController: RouteCollection {
 	}
 
 	func getFilteredStatus(req: Request) async throws -> [User.Response] {
-		guard let statusString = req.parameters.get("status"), let status = User.VaccinationVerificationStatus(rawValue: statusString) else {
+		guard let statusString = req.parameters.get("status"), let status = User.VerificationStatus(rawValue: statusString) else {
 			throw Abort(.badRequest, reason: "Invalid status.")
 		}
 
@@ -25,8 +25,8 @@ struct UserController: RouteCollection {
 			.filter(\.$vaccinationStatus == status)
 			.all()
 
-		return try filteredUsers.map { user in
-			try user.response()
+		return try await filteredUsers.concurrentMap { user in
+			return try await user.getResponse(on: req.db)
 		}
 	}
 
@@ -34,11 +34,11 @@ struct UserController: RouteCollection {
 		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
 			throw Abort(.notFound, reason: "There's no user with that ID.")
 		}
-		return try user.response()
+		return try await user.getResponse(on: req.db)
 	}
 
 	func adminIndex(req: Request) async throws -> [User.Response] {
-		return try await User.query(on: req.db).all().map({ try $0.response() })
+		return try await User.query(on: req.db).all().concurrentMap({ try await $0.getResponse(on: req.db) })
 	}
 
 	/// Get or create the user (if it doesn't exist already), returning the vaccination card if available.
@@ -54,7 +54,7 @@ struct UserController: RouteCollection {
 			// Note: For compatibility. When nobody's using the old stuff, remove this from user.
 			try await user.$vaccinationData.load(on: req.db)
 
-			return try user.response()
+			return try await user.getResponse(on: req.db)
 		} else {
 			let sendable = try await req.getUserDetails()
 
@@ -68,7 +68,7 @@ struct UserController: RouteCollection {
 
 			try await user.save(on: req.db)
 
-			return try user.response()
+			return try await user.getResponse(on: req.db)
 		}
 	}
 
@@ -78,7 +78,7 @@ struct UserController: RouteCollection {
 		let user = try await User.find(UUID(uuidString: token.subject.value), on: req.db)
 
 		if let user = user {
-			return try user.response()
+			return try await user.getResponse(on: req.db)
 		} else {
 			let sendable = try await req.getUserDetails()
 
@@ -92,7 +92,7 @@ struct UserController: RouteCollection {
 
 			try await user.save(on: req.db)
 
-			return try user.response()
+			return try await user.getResponse(on: req.db)
 		}
 	}
 }
