@@ -65,7 +65,9 @@ struct TestController: RouteCollection {
 
 		try await user.save(on: req.db)
 
-		return .init(status: user.testStatus, image: try await testData.image.getResponse(on: req.db), lastUpdated: testData.lastModified)
+		let image = try await testData.$image.get(on: req.db)
+
+		return .init(status: user.testStatus, image: try await image.getResponse(on: req.db), lastUpdated: testData.lastModified)
 	}
 
 	/// Allows an admin to get more detailed information about a user (including vaccination data).
@@ -78,7 +80,9 @@ struct TestController: RouteCollection {
 			throw Abort(.notFound, reason: "That user hasn't uploaded any test data.")
 		}
 
-		return .init(status: user.testStatus, image: try await testData.image.getResponse(on: req.db), lastUpdated: testData.lastModified)
+		let image = try await testData.$image.get(on: req.db)
+
+		return .init(status: user.testStatus, image: try await image.getResponse(on: req.db), lastUpdated: testData.lastModified)
 	}
 
 	func uploadImageBase64(req: Request) async throws -> CovidTestData.Response {
