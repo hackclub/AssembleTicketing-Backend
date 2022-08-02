@@ -3,6 +3,7 @@ import FluentPostgresDriver
 import Vapor
 import JWT
 import ConcurrentIteration
+import Mailgun
 
 // configures your application
 public func configure(_ app: Application) throws {
@@ -46,8 +47,12 @@ public func configure(_ app: Application) throws {
     // register routes
     try routes(app)
 
-	// TODO: Support JWKs.
 	// Keys
+	let ticketSignerKeyURL = app.ticketingConfiguration.ticketSigningKeyDir.appendingPathComponent("ticketSigner.key")
+	let ticketSignerString = try String(contentsOf: ticketSignerKeyURL)
+	let ticketSignerKey: RSAKey = try .private(pem: ticketSignerString)
+
+	app.jwt.signers.use(.rs256(key: ticketSignerKey), kid: .tickets, isDefault: false)
 
 	if let accessJWKs = try? String(contentsOfFile: Environment.get(withPrejudice: "ACCESS_KEY_URL")) {
 		try app.jwt.signers.use(jwksJSON: accessJWKs)
@@ -72,6 +77,11 @@ public func configure(_ app: Application) throws {
 		semaphore.wait()
 	}
 
+	// MARK: - Mailgun
+	app.mailgun.configuration = .environment
+	// TODO: Stop hardcoding this
+	app.mailgun.defaultDomain = .init("mail.assemble.hackclub.com", .us)
+
 	// Migrations
 	app.migrations.add(User.Create())
 	app.migrations.add(VaccinationData.Create())
@@ -82,4 +92,9 @@ public func configure(_ app: Application) throws {
 	app.migrations.add(VaccinationData.CopyImages())
 	app.migrations.add(User.AddCovidTestState())
 	app.migrations.add(CovidTestData.Create())
+	app.migrations.add(User.AddEventData())
+}
+
+extension JWKIdentifier {
+	static let tickets = JWKIdentifier(string: "tickets")
 }

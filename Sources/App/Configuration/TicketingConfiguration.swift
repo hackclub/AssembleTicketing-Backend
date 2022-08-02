@@ -13,6 +13,8 @@ struct TicketingConfiguration {
 	var clientURL: URL
 	/// The URL of the ID server (used for token audience validation).
 	var idAPIURL: URL
+	/// The path to the ticket/pass signing keys.
+	var ticketSigningKeyDir: URL
 
 	init(from environment: Environment) throws {
 		guard let issuersURL = URL(string: Environment.get("VCI_ISSUERS_LIST_PATH") ?? "") ?? Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {
@@ -32,6 +34,9 @@ struct TicketingConfiguration {
 		})
 		self.idAPIURL = try Environment.convert("ID_API_URL", using: { value in
 			URL(string: value)
+		})
+		self.ticketSigningKeyDir = try Environment.convert("KEYS_PATH", using: { value in
+			URL(fileURLWithPath: value)
 		})
 	}
 }
