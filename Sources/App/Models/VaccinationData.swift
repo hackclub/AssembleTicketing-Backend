@@ -49,8 +49,10 @@ final class VaccinationData: ModelStatusEncodable {
 //		self.photoType = nil
 	}
 
-	init(id: UUID? = nil) {
+	init(id: UUID? = nil, photoData: Data, photoType: HTTPMediaType) {
 		self.id = id
+		self.photoData = photoData
+		self.photoType = photoType
 		self.lastModified = Date()
 	}
 }

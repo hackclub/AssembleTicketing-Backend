@@ -12,7 +12,7 @@ extension User {
 			try await oldVaccinationData.delete(on: db)
 		}
 
-		let vaccinationData = try VaccinationData(record)
+		let vaccinationData = VaccinationData(record)
 
 		// Add the new data
 		try await self.$vaccinationData.create(vaccinationData, on: db)
@@ -23,14 +23,21 @@ extension User {
 
 
 extension VaccinationData {
-	convenience init(_ record: Response.RecordType) throws {
+	convenience init(_ record: VaccinationData.Response.RecordType) {
 		switch record {
-			case .image(let image):
-				self.init()
-				self.$image.id = try image.requireID()
-				self.lastModified = Date()
-			case .verified(let record):
-				self.init(verifiedVaccination: record)
+			case .image(let imageData, let fileType):
+				self.init(photoData: imageData, photoType: fileType)
+			case .verified(let verifiedRecord):
+				self.init(verifiedVaccination: verifiedRecord)
 		}
+	}
+
+	var record: VaccinationData.Response.RecordType? {
+		if let verifiedVaccination = self.verifiedVaccination {
+			return .verified(record: verifiedVaccination)
+		} else if let imageVaccination = self.photoData, let imageType = self.photoType {
+			return .image(data: imageVaccination, filetype: imageType)
+		}
+		return nil
 	}
 }

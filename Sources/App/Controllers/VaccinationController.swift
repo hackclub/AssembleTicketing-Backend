@@ -7,13 +7,13 @@ import ModelsR4
 import NIOFoundationCompat
 
 struct VaccinationController: RouteCollection {
-    func boot(routes: RoutesBuilder) throws {
+	func boot(routes: RoutesBuilder) throws {
 		let authed = routes.grouped([AccessToken.authenticator(), AccessToken.guardMiddleware()])
 		// Also allows cookie-based auth
 		let cookieAuthed = routes.grouped([AccessToken.cookieAcceptingAuthenticator(), AccessToken.guardMiddleware()])
 
-        let vaccinations = authed.grouped("vaccinations")
-        vaccinations.post("verified", use: uploadVerified)
+		let vaccinations = authed.grouped("vaccinations")
+		vaccinations.post("verified", use: uploadVerified)
 		vaccinations.post(["image", "multipart"], use: uploadImage)
 
 		// Cookie supported routes
@@ -32,7 +32,7 @@ struct VaccinationController: RouteCollection {
 			vaccination.get(use: adminGet)
 			vaccination.get(":hash", use: adminGet)
 		}
-    }
+	}
 
 	struct AdminVaccinationUpdate: Content {
 		var newStatus: User.VerificationStatus
@@ -51,7 +51,9 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.notFound, reason: "That user hasn't uploaded any vaccination data.")
 		}
 
-		let vaccinationRecord = try await vaccinationData.getRecord(on: req.db)
+		guard let vaccinationRecord = vaccinationData.record else {
+			throw Abort(.notFound, reason: "That user's vaccination data is empty.")
+		}
 
 		// Update the status and modification date.
 		user.vaccinationStatus = update.newStatus
@@ -72,8 +74,11 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.notFound, reason: "That user hasn't uploaded any vaccination data.")
 		}
 
-		let response = try await vaccinationData.getResponse(on: req.db)
-		response.isEquivalent(from: req.parameters.get("hash"))
+		guard let vaccinationRecord = vaccinationData.record else {
+			throw Abort(.notFound, reason: "That user's vaccination data is empty.")
+		}
+
+		let response = VaccinationData.Response(status: user.vaccinationStatus, record: vaccinationRecord, lastUpdated: vaccinationData.lastModified)
 
 		if let hash = req.parameters.get("hash") {
 			let responseHash = response
@@ -195,24 +200,33 @@ struct VaccinationController: RouteCollection {
 		return try await user.update(status: .verified, record: .verified(record: record), on: req.db)
 	}
 
+	struct Base64Image: Content {
+		var mimeType: HTTPMediaType
+		var data: Data
+	}
+
 	func uploadImageBase64(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
-		let input = try req.content.decode(Image.Response.self)
+		let input = try req.content.decode(Base64Image.self)
 
-		let image = try Image(from: input)
-		try await image.save(on: req.db)
+		guard input.mimeType.type == "image" else {
+			throw Abort(.badRequest, reason: "Must be an image.")
+		}
 
-		return try await user.update(status: .humanReviewRequired, record: .image(image: image), on: req.db)
+		return try await user.update(status: .humanReviewRequired, record: .image(data: input.data, filetype: input.mimeType), on: req.db)
 	}
 
 	func uploadImage(req: Request) async throws -> VaccinationData.Response {
 		let user = try await req.getUser()
 		let input = try req.content.decode(File.self)
 
-		let image = try Image(from: input)
-		try await image.save(on: req.db)
+		guard let contentType = input.contentType, contentType.type == "image" else {
+			throw Abort(.badRequest, reason: "Must be an image.")
+		}
 
-		return try await user.update(status: .humanReviewRequired, record: .image(image: image), on: req.db)
+		let data = Data(buffer: input.data)
+
+		return try await user.update(status: .humanReviewRequired, record: .image(data: data, filetype: contentType), on: req.db)
 	}
 
 	func view(req: Request) async throws -> VaccinationData.Response {
@@ -222,7 +236,9 @@ struct VaccinationController: RouteCollection {
 			throw Abort(.notFound, reason: "You haven't uploaded a vaccination yet.")
 		}
 
-		let vaccinationRecord = try await vaccinationData.getRecord(on: req.db)
+		guard let vaccinationRecord = vaccinationData.record else {
+			throw Abort(.notFound, reason: "There was no data in your vaccination record.")
+		}
 
 		let response = VaccinationData.Response(status: user.vaccinationStatus, record: vaccinationRecord, lastUpdated: Date())
 
@@ -264,29 +280,3 @@ extension VaccinationData.Response {
 
 extension SmartHealthCard.Payload: Content { }
 
-
-extension Image {
-	convenience init(from file: File) throws {
-		guard let contentType = file.contentType, contentType.type == "image" else {
-			throw Abort(.badRequest, reason: "Invalid content type.")
-		}
-
-		self.init(photoData: Data(buffer: file.data), photoType: contentType)
-	}
-
-	convenience init(from response: Response) throws {
-		guard response.mimeType.type == "image" else {
-			throw Abort(.badRequest, reason: "Invalid content type.")
-		}
-
-		self.init(photoData: response.data, photoType: response.mimeType)
-	}
-
-	convenience init(from upload: Upload) throws {
-		guard upload.imageType.type == "image" else {
-			throw Abort(.badRequest, reason: "Invalid content type.")
-		}
-
-		self.init(photoData: upload.data, photoType: upload.imageType)
-	}
-}

@@ -7,4 +7,5 @@ func routes(_ app: Application) throws {
 	try authed.register(collection: UserController())
 	// Not authed because it needs to handle cookie auth, and will handle its own auth.
 	try app.register(collection: VaccinationController())
+	try app.register(collection: TestController())
 }

@@ -2,7 +2,7 @@ import Vapor
 import Fluent
 
 /// A COVID Test record.
-final class CovidTestData: ModelStatusEncodable {
+final class CovidTestData: ModelStatusEncodable, ResponseEncodable {
 	static var parentStatusPath: KeyPath<User, User.VerificationStatus> = \.testStatus
 
 	static var parentPath: KeyPath<CovidTestData, ParentType> = \.user
@@ -14,15 +14,11 @@ final class CovidTestData: ModelStatusEncodable {
 	func getResponse(on db: Database) async throws -> Response {
 		let user = self.getParent(on: db)
 		let status = self.getStatus(from: user)
-		guard let code = try await user.$submissionCode.get(on: db) else {
-			throw Abort(.badRequest, reason: "No upload code set.")
-		}
 
 		return try await .init(
 			status: status,
-			image: self.$image.get(on: db),
-			lastUpdated: self.lastModified,
-			code: code.userFacingCode
+			image: self.$image.get(on: db).getResponse(on: db),
+			lastUpdated: self.lastModified
 		)
 	}
 

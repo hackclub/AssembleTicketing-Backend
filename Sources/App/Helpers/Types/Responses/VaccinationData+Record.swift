@@ -7,7 +7,7 @@ extension VaccinationData {
 		if let verifiedVaccination = self.verifiedVaccination {
 			return .verified(record: verifiedVaccination)
 		} else if let image = try await self.$image.get(on: database) {
-			return .image(image: image)
+			return .image(data: image.data, filetype: image.mimeType)
 		}
 		throw Abort(.conflict, reason: "No verified or image vaccination available.")
 	}

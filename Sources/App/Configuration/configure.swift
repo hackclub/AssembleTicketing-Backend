@@ -81,4 +81,5 @@ public func configure(_ app: Application) throws {
 	app.migrations.add(VaccinationData.AddImageParent())
 	app.migrations.add(VaccinationData.CopyImages())
 	app.migrations.add(User.AddCovidTestState())
+	app.migrations.add(CovidTestData.Create())
 }

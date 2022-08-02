@@ -24,15 +24,10 @@ final class User: Model, Content {
 	var testStatus: VerificationStatus
 
 	@OptionalChild(for: \.$user)
-	var vaccinationData: VaccinationData?
-
-	
+	var vaccinationData: VaccinationData?	
 
 	@OptionalChild(for: \.$user)
 	var testData: CovidTestData?
-
-	@OptionalChild(for: \.$user)
-	var submissionCode: CovidTestCode?
 
 	init() { }
 

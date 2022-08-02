@@ -17,7 +17,7 @@ extension VaccinationData {
 			/// A verified vaccination record.
 			case verified(record: Minimized.VerifiedVaccinationRecord)
 			/// An image vaccination record.
-			case image(image: Image)
+			case image(data: Data, filetype: HTTPMediaType)
 
 			/// A string that represents the type.
 			var typeString: String {
