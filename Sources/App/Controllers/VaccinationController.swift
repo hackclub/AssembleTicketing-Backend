@@ -7,13 +7,13 @@ import ModelsR4
 import NIOFoundationCompat
 
 struct VaccinationController: RouteCollection {
-    func boot(routes: RoutesBuilder) throws {
+	func boot(routes: RoutesBuilder) throws {
 		let authed = routes.grouped([AccessToken.authenticator(), AccessToken.guardMiddleware()])
 		// Also allows cookie-based auth
 		let cookieAuthed = routes.grouped([AccessToken.cookieAcceptingAuthenticator(), AccessToken.guardMiddleware()])
 
-        let vaccinations = authed.grouped("vaccinations")
-        vaccinations.post("verified", use: uploadVerified)
+		let vaccinations = authed.grouped("vaccinations")
+		vaccinations.post("verified", use: uploadVerified)
 		vaccinations.post(["image", "multipart"], use: uploadImage)
 
 		// Cookie supported routes
@@ -32,10 +32,10 @@ struct VaccinationController: RouteCollection {
 			vaccination.get(use: adminGet)
 			vaccination.get(":hash", use: adminGet)
 		}
-    }
+	}
 
 	struct AdminVaccinationUpdate: Content {
-		var newStatus: User.VaccinationVerificationStatus
+		var newStatus: User.VerificationStatus
 	}
 
 	/// Allows an admin to set a user's vaccination status manually (e.g, for `humanReviewRequired`).

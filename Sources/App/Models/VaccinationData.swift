@@ -1,8 +1,16 @@
 import Vapor
 import Fluent
 
-/// A user of the Assemble ticketing system.
-final class VaccinationData: Model, Content {
+/// A record of a COVID vaccination.
+final class VaccinationData: ModelStatusEncodable {
+	static var parentStatusPath: KeyPath<User, User.VerificationStatus> = \.vaccinationStatus
+
+	static var parentPath: KeyPath<VaccinationData, ParentType> = \.user
+
+	typealias ParentType = User
+
+	typealias StatusType = User.VerificationStatus
+
 	static let schema = "vaccination_data"
 
 	@ID(key: .id)
@@ -11,6 +19,10 @@ final class VaccinationData: Model, Content {
 
 	@Parent(key: "user_id")
 	var user: User
+
+	/// The image object, if it exists for this. 
+	@OptionalParent(key: "image_id")
+	var image: Image?
 
 	/// The user's vaccine card, if provided.
 	@Field(key: "card_photo")
@@ -34,7 +46,7 @@ final class VaccinationData: Model, Content {
 		self.id = id
 		self.verifiedVaccination = verifiedVaccination
 		self.lastModified = Date()
-		self.photoType = nil
+//		self.photoType = nil
 	}
 
 	init(id: UUID? = nil, photoData: Data, photoType: HTTPMediaType) {
