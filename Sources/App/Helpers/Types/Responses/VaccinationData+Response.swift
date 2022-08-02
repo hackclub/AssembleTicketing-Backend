@@ -32,8 +32,8 @@ extension VaccinationData {
 	}
 }
 
-extension VaccinationData {
-	func getResponse(on db: Database) async throws -> VaccinationData.Response {
+extension VaccinationData: ResponseEncodable {
+	func getResponse(on db: Database) async throws -> Response {
 		let record = try await self.getRecord(on: db)
 		return try await .init(status: self.$user.get(on: db).vaccinationStatus, record: record, lastUpdated: lastModified)
 	}

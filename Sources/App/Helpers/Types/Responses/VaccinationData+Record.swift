@@ -6,8 +6,8 @@ extension VaccinationData {
 	func getRecord(on database: Database) async throws -> VaccinationData.Response.RecordType {
 		if let verifiedVaccination = self.verifiedVaccination {
 			return .verified(record: verifiedVaccination)
-		} else if let image = try await self.$image.get(on: database) {
-			return .image(data: image.data, filetype: image.mimeType)
+		} else if let imageData = self.photoData, let imageType = self.photoType {
+			return .image(data: imageData, filetype: imageType)
 		}
 		throw Abort(.conflict, reason: "No verified or image vaccination available.")
 	}
