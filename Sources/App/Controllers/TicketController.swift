@@ -195,13 +195,29 @@ struct TicketController: RouteCollection {
 	func emailTicket(req: Request) async throws -> HTTPStatus {
 		let user = try await req.getUser()
 
-		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt)
+		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
 	}
 
-	func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT) async throws -> HTTPStatus {
+	func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT, client: Client) async throws -> HTTPStatus {
 		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(user: user, jwt: jwt)
 
 		let qrString = try generateQRString(token: tokenString)
+
+		guard let walletBadgeURL = Bundle.module.url(forResource: "walletbadge", withExtension: "png") else {
+			throw Abort(.internalServerError, reason: "Couldn't find wallet badge.")
+		}
+
+		let pngResponse = try await client.post("https://svg2png-production.up.railway.app/png", headers: ["Content-Type": "text/plain; charset=utf-8"]) { request in
+			try request.content.encode(qrString)
+		}
+
+		guard let pngData = pngResponse.body else {
+			throw Abort(.internalServerError, reason: "Couldn't convert QR to PNG.")
+		}
+		let qrPNG = File(data: pngData, filename: "qrticket.png")
+
+		let walletBadgeData = try Data(contentsOf: walletBadgeURL)
+		let walletBadge = File(data: .init(data: walletBadgeData), filename: "applewalletbadge.png")
 
 		let message = MailgunTemplateMessage(
 			from: "Hack Club Assemble<donotreply@mail.assemble.hackclub.com>",
@@ -210,7 +226,8 @@ struct TicketController: RouteCollection {
 			template: "ticket",
 			templateData: ["ticket_qr": tokenString],
 			inline: [
-				.init(data: qrString, filename: "qrticket.svg")
+				qrPNG,
+				walletBadge
 			]
 		)
 
@@ -278,7 +295,7 @@ struct TicketController: RouteCollection {
 			throw Abort(.notFound, reason: "There's no user with that ID.")
 		}
 
-		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt)
+		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
 	}
 }
 

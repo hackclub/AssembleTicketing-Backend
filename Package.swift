@@ -39,6 +39,7 @@ let package = Package(
 			resources: [
 				.copy("Resources/vci-issuers.json"),
 				.copy("Resources/nicknames.json"),
+				.copy("Resources/walletbadge.png"),
 				.copy("Resources/PassAssets/icon.png"),
 				.copy("Resources/PassAssets/icon@2x.png"),
 				.copy("Resources/PassAssets/logo.png"),
