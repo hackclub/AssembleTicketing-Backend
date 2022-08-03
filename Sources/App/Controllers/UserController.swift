@@ -97,4 +97,10 @@ struct UserController: RouteCollection {
 	}
 }
 
-
+// TODO: Move this to its own file.
+enum WaiverStatus: String, Codable {
+	/// The mandatory waiver everyone has to sign.
+	case mandatory
+	/// The freedom waiver.
+	case freedom
+}

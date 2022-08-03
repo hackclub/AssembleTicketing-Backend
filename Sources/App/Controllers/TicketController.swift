@@ -92,10 +92,17 @@ struct TicketController: RouteCollection {
 		}
 	}
 
-	func generateQR(token: String, user: User, request: Request) async throws -> Response {
+	func generateQRString(token: String) throws -> String {
 		// Low error connection because these are going to be on reasonably high-quality mobile device screens
 		let qr = try QRCode.encode(text: token, ecl: .low)
 		let svgString = qr.toSVGString(border: 2)
+
+		return svgString
+	}
+
+	func generateQR(token: String, user: User, request: Request) async throws -> Response {
+		let svgString = try generateQRString(token: token)
+
 		let headers: HTTPHeaders = [
 			"Content-Type": "image/svg+xml"
 		]
@@ -194,15 +201,22 @@ struct TicketController: RouteCollection {
 	func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT) async throws -> HTTPStatus {
 		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(user: user, jwt: jwt)
 
+		let qrString = try generateQRString(token: tokenString)
+
 		let message = MailgunTemplateMessage(
 			from: "Hack Club Assemble<donotreply@mail.assemble.hackclub.com>",
 			to: user.email,
 			subject: "Your Assemble Ticket",
 			template: "ticket",
-			templateData: ["ticket_qr": tokenString]
+			templateData: ["ticket_qr": tokenString],
+			inline: [
+				.init(data: qrString, filename: "qrticket.svg")
+			]
 		)
 
-		let _ = try await mailgun.send(message).get()
+		let response = try await mailgun.send(message).get()
+
+		print(response)
 
 		return .ok
 	}
@@ -266,14 +280,6 @@ struct TicketController: RouteCollection {
 
 		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt)
 	}
-}
-
-// TODO: Move this to its own file.
-enum WaiverStatus: String, Codable {
-	/// The mandatory waiver everyone has to sign.
-	case mandatory
-	/// The freedom waiver.
-	case freedom
 }
 
 extension AppleWalletEventTicket: Content {}
