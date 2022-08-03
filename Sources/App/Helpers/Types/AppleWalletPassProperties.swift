@@ -145,6 +145,35 @@ struct RGBColor {
 }
 
 extension RGBColor: LosslessStringConvertible, Codable {
+	/// Initialize from a hex string (but without the leading hash).
+	init?(hex: String) {
+		guard hex.count == 6 else {
+			return nil
+		}
+
+		let components = hex.split(every: 2)
+
+		let doubleComponents = try? components.map { component -> Double in
+			guard let intValue = Int(component, radix: 16) else {
+				throw HexInitializationError.badNumber
+			}
+
+			let doubleValue = Double(intValue) / 255
+			return doubleValue
+		}
+
+		guard let doubleComponents = doubleComponents else {
+			return nil
+		}
+
+		self.init(red: doubleComponents[0], blue: doubleComponents[1], green: doubleComponents[2])
+	}
+
+	enum HexInitializationError: Error {
+		/// The given hex wasn't a valid Int.
+		case badNumber
+	}
+
     init?(_ description: String) {
         var description = description
 

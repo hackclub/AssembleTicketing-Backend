@@ -2,6 +2,8 @@ import Fluent
 import Vapor
 import QRCodeGenerator
 import Mailgun
+import PassEncoder
+import JWT
 
 struct TicketController: RouteCollection {
 	struct TicketTypeHandler<ReturnType: AsyncResponseEncodable>: RouteCollection {
@@ -29,10 +31,15 @@ struct TicketController: RouteCollection {
 			return (tokenString, token, user)
 		}
 
-		/// Gets the user's ticket token, throwing an error if they're for whatever reason ineligible.
+		/// Gets the signed in user's ticket token, throwing an error if they're for whatever reason ineligible.
 		static func getTicketToken(req: Request) async throws -> (tokenString: String, token: TicketToken, user: User) {
 			let user = try await req.getUser()
 
+			return try await getTicketToken(user: user, jwt: req.jwt)
+		}
+
+		/// Get a specific user's ticket token. Only call this route from admin routes.
+		static func getTicketToken(user: User, jwt: Request.JWT) async throws -> (tokenString: String, token: TicketToken, user: User) {
 			guard user.vaccinationStatus == .verified else {
 				throw Abort(.conflict, reason: "Your vaccination wasn't verified.")
 			}
@@ -47,7 +54,7 @@ struct TicketController: RouteCollection {
 
 			let userID = try user.requireID()
 			let token = TicketToken(subject: .init(value: userID.uuidString))
-			let signedToken = try req.jwt.sign(token, kid: .tickets)
+			let signedToken = try jwt.sign(token, kid: .tickets)
 			return (signedToken, token, user)
 		}
 
@@ -81,24 +88,46 @@ struct TicketController: RouteCollection {
 		adminAuthed.group("admin") { ticket in
 			ticket.get(["data", ":ticketToken"], use: adminGetCheckInData)
 			ticket.get(["checkin", ":ticketToken"], use: adminCheckUserIn)
+			ticket.get(["email", ":userID"], use: adminEmailUserTickets)
 		}
 	}
 
-	func generateQR(token: String, user: User, request: Request) async throws -> String {
+	func generateQR(token: String, user: User, request: Request) async throws -> Response {
 		// Low error connection because these are going to be on reasonably high-quality mobile device screens
 		let qr = try QRCode.encode(text: token, ecl: .low)
-		return qr.toSVGString(border: 2)
+		let svgString = qr.toSVGString(border: 2)
+		let headers: HTTPHeaders = [
+			"Content-Type": "image/svg+xml"
+		]
+
+		return .init(status: .ok, headers: headers, body: .init(string: svgString))
 	}
 
-	func generateWalletPass(token: String, user: User, request: Request) async throws -> AppleWalletEventTicket {
-		try AppleWalletEventTicket(
+	func generateWalletPass(token: String, user: User, request: Request) async throws -> Response {
+		let pass = try AppleWalletEventTicket(
 			passTypeIdentifier: "pass.com.hackclub.event.summer.2022",
 			serialNumber: user.requireID().uuidString,
 			teamIdentifier: "P6PV2R9443",
 			webServiceURL: URL(string: "https://api.ticketing.assemble.hackclub.com/tickets/update/")!,
 			authenticationToken: token,
-			relevantDate: .now, backgroundColor: .init(red: 0.173, blue: 0.173, green: 0.173),
-			logoText: "Hack Club Assemble",
+			// TODO: Make event date configurable
+			relevantDate: .init(timeIntervalSince1970: 1659747600),
+			foregroundColor: .init(hex: "ffffff"),
+			backgroundColor: .init(hex: "C0362C"),
+			labelColor: .init(hex: "ffffff"),
+			// NOTE: This doesn't work due to (I think) some weird float conversion bug. 
+//			locations: [
+//				.init(
+//					longitude:
+//						round(37.7865 * 10_000) / 10_000,
+//					latitude:
+//						round(-122.4053 * 10_000) / 10_000
+//				)
+//			],
+			barcodes: [
+				.init(message: token, format: .qr)
+			],
+			logoText: "Assemble",
 			organizationName: "The Hack Foundation",
 			description: "Hack Club Assemble Ticket",
 			eventTicket: .init(
@@ -106,17 +135,64 @@ struct TicketController: RouteCollection {
 					.init(key: "name", value: user.name)
 				], secondaryFields: [
 					.init(key: "loc", value: "Figma HQ", label: "LOCATION"),
-					.init(key: "time", value: "2022-08-05T18:00:00-07:00", label: "LOCATION", dateStyle: .short, isRelative: true)
+					.init(key: "time", value: "2022-08-05T18:00:00-07:00", label: "DATE", dateStyle: .medium, isRelative: true)
 				]
 			)
 		)
+
+		// Encode the pass to give to PassEncoder
+		let encoder = JSONEncoder()
+		encoder.dateEncodingStrategy = .iso8601
+
+		let passData = try encoder.encode(pass)
+
+		guard let passEncoder = PassEncoder.init(passData: passData) else {
+			throw Abort(.internalServerError, reason: "Couldn't generate pass.")
+		}
+
+		let fileNames = ["icon", "icon@2x", "logo", "logo@2x", "strip", "strip@2x"]
+
+		for fileName in fileNames {
+			guard let fileURL = Bundle.module.url(forResource: fileName, withExtension: "png") else {
+				print("Failed to add \(fileName)")
+				continue
+			}
+
+			guard passEncoder.addFile(from: fileURL) else {
+				print("Failed to add file at url \(fileURL)")
+				continue
+			}
+		}
+
+		let passCertURL = request
+			.ticketingConfiguration
+			.ticketSigningKeyDir
+			.appendingPathComponent("walletSigningPass.pem")
+
+		guard let encodedPass = passEncoder.encode(signingInfo: (certificate: passCertURL, password: request.ticketingConfiguration.passSigningKeyPassword)) else {
+			throw Abort(.internalServerError, reason: "Couldn't generate pass.")
+		}
+
+		let headers: HTTPHeaders = try [
+			"Content-Type": "application/vnd.apple.pkpass",
+			"Content-Disposition": "attachment; filename=\"\(user.requireID().uuidString).pkpass\"",
+			"Content-Transfer-Encoding": "binary",
+			"Accept-Ranges": "bytes"
+		]
+
+		let response = Response(status: .ok, headers: headers, body: .init(data: encodedPass))
+		return response
 	}
 
 
 	func emailTicket(req: Request) async throws -> HTTPStatus {
 		let user = try await req.getUser()
 
-		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(req: req)
+		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt)
+	}
+
+	func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT) async throws -> HTTPStatus {
+		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(user: user, jwt: jwt)
 
 		let message = MailgunTemplateMessage(
 			from: "Hack Club Assemble<donotreply@mail.assemble.hackclub.com>",
@@ -126,9 +202,7 @@ struct TicketController: RouteCollection {
 			templateData: ["ticket_qr": tokenString]
 		)
 
-		let mailgunResponse = try await req.mailgun().send(message).get()
-
-		req.logger.log(level: .info, "mailgun response: \(mailgunResponse)")
+		let _ = try await mailgun.send(message).get()
 
 		return .ok
 	}
@@ -183,6 +257,14 @@ struct TicketController: RouteCollection {
 			waiverStatus: user.waiverStatus,
 			name: user.name
 		)
+	}
+
+	func adminEmailUserTickets(req: Request) async throws -> HTTPStatus {
+		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+			throw Abort(.notFound, reason: "There's no user with that ID.")
+		}
+
+		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt)
 	}
 }
 

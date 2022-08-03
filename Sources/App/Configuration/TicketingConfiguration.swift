@@ -15,6 +15,8 @@ struct TicketingConfiguration {
 	var idAPIURL: URL
 	/// The path to the ticket/pass signing keys.
 	var ticketSigningKeyDir: URL
+	/// The password for the Wallet pass signing key. 
+	var passSigningKeyPassword: String
 
 	init(from environment: Environment) throws {
 		guard let issuersURL = URL(string: Environment.get("VCI_ISSUERS_LIST_PATH") ?? "") ?? Bundle.module.url(forResource: "vci-issuers", withExtension: "json") else {
@@ -23,7 +25,6 @@ struct TicketingConfiguration {
 		guard let nicknamesURL = URL(string: Environment.get("NICKNAMES_LIST_PATH") ?? "") ?? Bundle.module.url(forResource: "nicknames", withExtension: "json") else {
 			throw ConfigurationErrors.invalidEnvVar(envVar: "NICKNAMES_LIST_PATH")
 		}
-
 		self.issuers = try Issuers(from: issuersURL)
 		self.nicknames = try Nicknames(from: nicknamesURL)
 		self.organizationID = try Environment.convert("ORGANIZATION_ID", using: { value in
@@ -38,6 +39,7 @@ struct TicketingConfiguration {
 		self.ticketSigningKeyDir = try Environment.convert("KEYS_PATH", using: { value in
 			URL(fileURLWithPath: value)
 		})
+		self.passSigningKeyPassword = try Environment.get(withPrejudice: "WALLET_SIGNING_PASSWORD")
 	}
 }
 

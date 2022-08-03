@@ -4,6 +4,7 @@ import Vapor
 import JWT
 import ConcurrentIteration
 import Mailgun
+import PassEncoder
 
 // configures your application
 public func configure(_ app: Application) throws {
@@ -76,6 +77,8 @@ public func configure(_ app: Application) throws {
 		}
 		semaphore.wait()
 	}
+
+	PassSigner.shared.appleWWDRCertURL = app.ticketingConfiguration.ticketSigningKeyDir.appendingPathComponent("wwdr.pem")
 
 	// MARK: - Mailgun
 	app.mailgun.configuration = .environment
