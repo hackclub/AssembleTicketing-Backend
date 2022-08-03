@@ -20,6 +20,12 @@ final class User: Model, Content {
 	@Field(key: "vaccinationStatus")
 	var vaccinationStatus: VerificationStatus
 
+	@Field(key: "isCheckedIn")
+	var isCheckedIn: Bool
+
+	@Field(key: "waiverStatus")
+	var waiverStatus: WaiverStatus?
+
 	@Field(key: "testStatus")
 	var testStatus: VerificationStatus
 

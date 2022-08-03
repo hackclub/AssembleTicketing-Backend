@@ -100,12 +100,30 @@
       }
     },
     {
+      "identity" : "mailgun",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor-community/mailgun.git",
+      "state" : {
+        "revision" : "cb9e4d6d1b760739bf288b07c41bb01bbfe578c5",
+        "version" : "5.0.0"
+      }
+    },
+    {
       "identity" : "multipart-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/multipart-kit.git",
       "state" : {
         "revision" : "0d55c35e788451ee27222783c7d363cb88092fab",
         "version" : "4.5.2"
+      }
+    },
+    {
+      "identity" : "passencoder",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aydenp/PassEncoder.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "edef6e1620d1f4c2a269a5edf467e0d4f123b68f"
       }
     },
     {
@@ -185,8 +203,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "d9825fa541df64b1a7b182178d61b9a82730d01f",
-        "version" : "2.1.0"
+        "revision" : "ddb07e896a2a8af79512543b1c7eb9797f8898a5",
+        "version" : "1.1.7"
       }
     },
     {
@@ -262,6 +280,15 @@
       }
     },
     {
+      "identity" : "swift-qrcode-generator",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/fwcd/swift-qrcode-generator.git",
+      "state" : {
+        "revision" : "5ca09b6a2ad190f94aa3d6ddef45b187f8c0343b",
+        "version" : "1.0.3"
+      }
+    },
+    {
       "identity" : "vapor",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/vapor.git",
@@ -277,6 +304,15 @@
       "state" : {
         "revision" : "d8230eae70650652661f360f322db0cc22955b2f",
         "version" : "2.5.0"
+      }
+    },
+    {
+      "identity" : "zipfoundation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/weichsel/ZIPFoundation.git",
+      "state" : {
+        "revision" : "7254c74b49cec2cb81520523ba993c671f71b066",
+        "version" : "0.9.14"
       }
     }
   ],

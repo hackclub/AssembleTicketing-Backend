@@ -15,7 +15,10 @@ let package = Package(
 		.package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
 		.package(url: "https://github.com/tetraoxygen/jwt-kit.git", branch: "add-zip-support"),
 		.package(url: "https://github.com/apple/FHIRModels.git", from: "0.4.0"),
-		.package(url: "https://github.com/allotropeinc/ConcurrentIteration.git", from: "1.0.0")
+		.package(url: "https://github.com/allotropeinc/ConcurrentIteration.git", from: "1.0.0"),
+		.package(url: "https://github.com/fwcd/swift-qrcode-generator.git", from: "1.0.0"),
+		.package(url: "https://github.com/vapor-community/mailgun.git", from: "5.0.0"),
+		.package(url: "https://github.com/aydenp/PassEncoder.git", branch: "master"),
 	],
     targets: [
         .target(
@@ -28,11 +31,20 @@ let package = Package(
 				.product(name: "JWTKit", package: "jwt-kit"),
 				.product(name: "JWT", package: "jwt"),
 				.product(name: "ModelsR4", package: "FHIRModels"),
-				.product(name: "ConcurrentIteration", package: "ConcurrentIteration")
+				.product(name: "ConcurrentIteration", package: "ConcurrentIteration"),
+				.product(name: "QRCodeGenerator", package: "swift-qrcode-generator"),
+				.product(name: "Mailgun", package: "Mailgun"),
+				.product(name: "PassEncoder", package: "PassEncoder")
             ],
 			resources: [
 				.copy("Resources/vci-issuers.json"),
-				.copy("Resources/nicknames.json")
+				.copy("Resources/nicknames.json"),
+				.copy("Resources/PassAssets/icon.png"),
+				.copy("Resources/PassAssets/icon@2x.png"),
+				.copy("Resources/PassAssets/logo.png"),
+				.copy("Resources/PassAssets/logo@2x.png"),
+				.copy("Resources/PassAssets/strip.png"),
+				.copy("Resources/PassAssets/strip@2x.png"),
 			],
             swiftSettings: [
                 // Enable better optimizations when building in Release configuration. Despite the use of
