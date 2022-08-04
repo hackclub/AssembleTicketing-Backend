@@ -67,6 +67,12 @@ struct TestController: RouteCollection {
 
 		let image = try await testData.$image.get(on: req.db)
 
+		do {
+			_ = try await TicketController.emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
+		} catch {
+			print(error)
+		}
+
 		return .init(status: user.testStatus, image: try await image.getResponse(on: req.db), lastUpdated: testData.lastModified)
 	}
 

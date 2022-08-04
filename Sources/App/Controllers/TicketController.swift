@@ -92,7 +92,7 @@ struct TicketController: RouteCollection {
 		}
 	}
 
-	func generateQRString(token: String) throws -> String {
+	static func generateQRString(token: String) throws -> String {
 		// Low error connection because these are going to be on reasonably high-quality mobile device screens
 		let qr = try QRCode.encode(text: token, ecl: .low)
 		let svgString = qr.toSVGString(border: 2)
@@ -101,7 +101,7 @@ struct TicketController: RouteCollection {
 	}
 
 	func generateQR(token: String, user: User, request: Request) async throws -> Response {
-		let svgString = try generateQRString(token: token)
+		let svgString = try Self.generateQRString(token: token)
 
 		let headers: HTTPHeaders = [
 			"Content-Type": "image/svg+xml"
@@ -195,10 +195,10 @@ struct TicketController: RouteCollection {
 	func emailTicket(req: Request) async throws -> HTTPStatus {
 		let user = try await req.getUser()
 
-		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
+		return try await Self.emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
 	}
 
-	func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT, client: Client) async throws -> HTTPStatus {
+	static func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT, client: Client) async throws -> HTTPStatus {
 		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(user: user, jwt: jwt)
 
 		let qrString = try generateQRString(token: tokenString)
@@ -295,7 +295,7 @@ struct TicketController: RouteCollection {
 			throw Abort(.notFound, reason: "There's no user with that ID.")
 		}
 
-		return try await emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
+		return try await Self.emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
 	}
 }
 
