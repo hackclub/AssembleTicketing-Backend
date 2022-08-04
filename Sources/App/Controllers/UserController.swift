@@ -48,7 +48,7 @@ struct UserController: RouteCollection {
 			.all()
 
 		unfilteredUsers.removeAll { user in
-			return status == min(user.testStatus, user.vaccinationStatus)
+			return status != min(user.testStatus, user.vaccinationStatus)
 		}
 
 		let filteredUsers = unfilteredUsers
