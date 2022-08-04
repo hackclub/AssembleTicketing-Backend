@@ -2,6 +2,28 @@ import Vapor
 import JWT
 import Fluent
 
+extension User.VerificationStatus: Comparable {
+	/// For Comparable conformance.
+	var intValue: Int {
+		switch self {
+			case .verified:
+				return 4
+			case .verifiedWithDiscrepancy:
+				return 3
+			case .humanReviewRequired:
+				return 2
+			case .noData:
+				return 1
+			case .denied:
+				return 0
+		}
+	}
+
+	static func < (lhs: User.VerificationStatus, rhs: User.VerificationStatus) -> Bool {
+		lhs.intValue < rhs.intValue
+	}
+}
+
 struct UserController: RouteCollection {
 	func boot(routes: RoutesBuilder) throws {
 		let users = routes.grouped("users")
@@ -20,10 +42,16 @@ struct UserController: RouteCollection {
 			throw Abort(.badRequest, reason: "Invalid status.")
 		}
 
-		let filteredUsers = try await User
+		// This is what giving up looks like
+		var unfilteredUsers = try await User
 			.query(on: req.db)
-			.filter(\.$vaccinationStatus == status)
 			.all()
+
+		unfilteredUsers.removeAll { user in
+			return status == min(user.testStatus, user.vaccinationStatus)
+		}
+
+		let filteredUsers = unfilteredUsers
 
 		return try await filteredUsers.concurrentMap { user in
 			return try await user.getResponse(on: req.db)
