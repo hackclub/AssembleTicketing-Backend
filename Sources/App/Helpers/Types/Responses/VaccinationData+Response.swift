@@ -58,7 +58,7 @@ extension VaccinationData: ResponseEncodable {
 
 extension VaccinationData {
 	func getResponse(on db: Database) async throws -> Response {
-		let record = try await self.getRecord(on: db)
+		let record = try self.getRecord()
 		return .init(status: status, record: record, lastUpdated: lastModified)
 	}
 }

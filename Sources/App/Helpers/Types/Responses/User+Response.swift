@@ -3,7 +3,7 @@ import FluentKit
 
 extension User: ResponseEncodable {
 	func getResponse(on db: Database) async throws -> Response {
-		try await .init(self, on: db)
+		try await .init(self)
 	}
 
 	/// A version of User meant to be sent over the wire with a VaccinationResponse.
@@ -27,12 +27,14 @@ extension User: ResponseEncodable {
 		var id: UUID
 		var name: String
 		var email: String
+		var waiverStatus: WaiverStatus?
 
 		/// Creates a Response from a User. Will include vaccination data if eager-loaded.
-		init(_ user: User, on database: Database) async throws {
+		init(_ user: User) async throws {
 			self.id = try user.requireID()
 			self.name = user.name
 			self.email = user.email
+			self.waiverStatus = user.waiverStatus
 		}
 	}
 }

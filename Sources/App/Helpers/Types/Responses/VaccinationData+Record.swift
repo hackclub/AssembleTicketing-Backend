@@ -28,7 +28,7 @@ extension VaccinationData {
 	}
 	
 	/// Gets the appropriate record type from the database for the VaccinationData object.
-	func getRecord(on database: Database) async throws -> VaccinationData.Response.RecordType {
+	func getRecord() throws -> VaccinationData.Response.RecordType {
 		if let verifiedVaccination = self.verifiedVaccination {
 			return .verified(record: verifiedVaccination)
 		} else if let imageModel = image {

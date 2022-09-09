@@ -82,3 +82,4 @@ struct TicketController: RouteCollection {
 		return try await user.getCheckInResponse(on: req.db)
 	}
 }
+

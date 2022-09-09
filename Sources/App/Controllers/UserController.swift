@@ -57,17 +57,6 @@ struct UserController: Controller {
 		}
 	}
 
-	func adminGet(req: Request) async throws -> User.Response {
-		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
-			throw Abort(.notFound, reason: "There's no user with that ID.")
-		}
-		return try await user.getResponse(on: req.db)
-	}
-
-	func adminIndex(req: Request) async throws -> [User.Response] {
-		return try await User.query(on: req.db).all().concurrentMap({ try await $0.getResponse(on: req.db) })
-	}
-
 	func me(req: Request) async throws -> User.Response {
 		let token = try req.auth.require(AccessToken.self)
 
@@ -91,5 +80,43 @@ struct UserController: Controller {
 
 			return try await user.getResponse(on: req.db)
 		}
+	}
+
+	func adminGet(req: Request) async throws -> User.Response {
+		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+			throw Abort(.notFound, reason: "There's no user with that ID.")
+		}
+		return try await user.getResponse(on: req.db)
+	}
+
+	func adminIndex(req: Request) async throws -> [User.Response] {
+		return try await User
+			.query(on: req.db)
+			.all()
+			.concurrentMap { user in
+				try await user.getResponse(on: req.db)
+			}
+	}
+
+
+
+	func adminSetWaiverStatus(req: Request) async throws -> User.Response {
+		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+			throw Abort(.notFound, reason: "There's no user with that ID.")
+		}
+
+		guard
+			let waiverStatusString = try req.parameters.get("waiverStatus"),
+			let waiverStatus = User.WaiverStatus(rawValue: waiverStatusString)
+		else {
+			throw Abort(.badRequest, reason: "Invalid waiver status.")
+		}
+
+		user.waiverStatus = waiverStatus
+		try await user.save(on: req.db)
+
+		try await user.save(on: req.db)
+
+		return try await user.getResponse(on: req.db)
 	}
 }

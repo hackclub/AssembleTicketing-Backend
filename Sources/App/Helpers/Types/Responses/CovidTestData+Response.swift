@@ -39,7 +39,7 @@ extension CovidTestData: ResponseEncodable {
 			throw Abort(.notFound, reason: "No image attached to the COVID Test data.")
 		}
 
-		return try await .init(
+		return .init(
 			status: self.status,
 			image: imageModel.image,
 			lastUpdated: self.lastModified
