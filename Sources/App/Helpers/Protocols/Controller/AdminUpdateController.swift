@@ -33,8 +33,7 @@ extension AdminUpdateController {
 
 		// Send the user their ticket if the update justifies it
 		if try await user.shouldSendTicket(on: req.db) {
-			// TODO: Email the user their ticket
-//			_ = try await TicketController.emailTicket(user: user, mailgun: req.mailgun(), jwt: req.jwt, client: req.client)
+			try await user.emailTicket(req: req)
 		}
 
 		return try await updatedObject.getResponse(on: req.db)
