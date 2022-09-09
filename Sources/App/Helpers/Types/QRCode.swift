@@ -1,5 +1,4 @@
 import Foundation
-import MagickBird
 import QRCodeGenerator
 import SwiftDraw
 

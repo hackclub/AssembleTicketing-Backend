@@ -2,7 +2,6 @@ import Fluent
 import Vapor
 import Mailgun
 import PassIssuingKit
-import MagickBird
 import JWT
 
 struct TicketController: RouteCollection {
