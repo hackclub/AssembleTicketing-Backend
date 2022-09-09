@@ -72,7 +72,7 @@ extension User {
 							.generic(.init(key: "name", value: self.name))
 						], secondaryFields: [
 							.generic(.init(key: "loc", value: req.eventConfig.eventLocation, label: "LOCATION")),
-							.date(.init(key: "time", value: ISO8601DateFormatter.string(from: <#T##Date#>, timeZone: <#T##TimeZone#>), dateStyle: .medium))
+							.date(.init(key: "time", value: req.eventConfig.date.iso8601, dateStyle: .medium))
 						]
 					)
 				)),
@@ -132,4 +132,3 @@ extension User {
 		req.logger.info("\(response)")
 	}
 }
-
