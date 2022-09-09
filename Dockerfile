@@ -7,7 +7,9 @@ FROM swiftlang/swift:nightly-5.7-focal
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
     && apt-get -q update \
     && apt-get -q dist-upgrade -y \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get install -y libcurl4-dev \
+    libxml2-dev
 
 # Set up a build area
 WORKDIR /build
@@ -54,7 +56,7 @@ RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
 # If your app or its dependencies import FoundationNetworking, also install `libcurl4`.
       libcurl4 \
 # If your app or its dependencies import FoundationXML, also install `libxml2`.
-      # libxml2 \
+      libxml2 \
     && rm -r /var/lib/apt/lists/*
 
 # Create a vapor user and group with /app as its home directory
