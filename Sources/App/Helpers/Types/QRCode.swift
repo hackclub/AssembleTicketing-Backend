@@ -42,6 +42,13 @@ struct QRCode {
 		guard let svg = SVG(data: svgData) else {
 			throw QRCodeError.conversionFailed
 		}
+		#if os(Linux)
+		guard let pngData = svg.pngData() else {
+			throw QRCodeError.conversionFailed
+		}
+		return pngData
+		#else
 		return try svg.pngData()
+		#endif
 	}
 }
