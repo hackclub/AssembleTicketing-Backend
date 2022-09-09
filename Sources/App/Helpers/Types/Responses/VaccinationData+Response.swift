@@ -3,6 +3,11 @@ import Vapor
 import Fluent
 
 extension VaccinationData: ResponseEncodable {
+	func getResponse(on db: Database) async throws -> Response {
+		let record = try await self.getRecord(on: db)
+		return .init(status: status, record: record, lastUpdated: lastModified)
+	}
+
 	/// The response to a vaccination verification request.
 	struct Response: Content, ResponseHashable {
 		func sha256() -> Data {
@@ -53,12 +58,5 @@ extension VaccinationData: ResponseEncodable {
 				}
 			}
 		}
-	}
-}
-
-extension VaccinationData {
-	func getResponse(on db: Database) async throws -> Response {
-		let record = try self.getRecord()
-		return .init(status: status, record: record, lastUpdated: lastModified)
 	}
 }

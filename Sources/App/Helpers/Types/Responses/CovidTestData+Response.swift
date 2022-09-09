@@ -2,6 +2,18 @@ import Vapor
 import Fluent
 
 extension CovidTestData: ResponseEncodable {
+	func getResponse(on db: Database) async throws -> Response {
+		guard let imageModel = try await self.$image.get(on: db) else {
+			throw Abort(.notFound, reason: "No image attached to the COVID Test data.")
+		}
+
+		return .init(
+			status: self.status,
+			image: imageModel.image,
+			lastUpdated: self.lastModified
+		)
+	}
+
 	struct Response: Content, ResponseHashable {
 		func sha256() -> Data {
 			var hasher = SHA256()
@@ -32,17 +44,5 @@ extension CovidTestData: ResponseEncodable {
 		var image: Image
 		/// The time the record was last updated.
 		var lastUpdated: Date
-	}
-
-	func getResponse(on db: Database) async throws -> Response {
-		guard let imageModel = try await self.$image.get(on: db) else {
-			throw Abort(.notFound, reason: "No image attached to the COVID Test data.")
-		}
-
-		return .init(
-			status: self.status,
-			image: imageModel.image,
-			lastUpdated: self.lastModified
-		)
 	}
 }

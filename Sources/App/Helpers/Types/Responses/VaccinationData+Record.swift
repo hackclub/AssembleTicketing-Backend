@@ -3,6 +3,16 @@ import Vapor
 import FluentKit
 
 extension VaccinationData {
+	/// Gets the appropriate record type from the database for the VaccinationData object.
+	func getRecord(on db: Database) async throws -> VaccinationData.Response.RecordType {
+		if let verifiedVaccination = self.verifiedVaccination {
+			return .verified(record: verifiedVaccination)
+		} else if let imageModel = try await self.$image.get(on: db) {
+			return .image(image: imageModel.image)
+		}
+		throw Abort(.conflict, reason: "No verified or image vaccination available.")
+	}
+
 	convenience init(_ record: VaccinationData.Response.RecordType, on db: Database) async throws {
 		switch record {
 			case .image(let image):
@@ -25,15 +35,5 @@ extension VaccinationData {
 			return .image(image: imageVaccination.image)
 		}
 		return nil
-	}
-	
-	/// Gets the appropriate record type from the database for the VaccinationData object.
-	func getRecord() throws -> VaccinationData.Response.RecordType {
-		if let verifiedVaccination = self.verifiedVaccination {
-			return .verified(record: verifiedVaccination)
-		} else if let imageModel = image {
-			return .image(image: imageModel.image)
-		}
-		throw Abort(.conflict, reason: "No verified or image vaccination available.")
 	}
 }
