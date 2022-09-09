@@ -1,7 +1,7 @@
 import Vapor
 import Fluent
 
-extension CovidTestData {
+extension CovidTestData: ResponseEncodable {
 	struct Response: Content, ResponseHashable {
 		func sha256() -> Data {
 			var hasher = SHA256()

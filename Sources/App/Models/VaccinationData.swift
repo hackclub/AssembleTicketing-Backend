@@ -2,7 +2,7 @@ import Vapor
 import Fluent
 
 /// A record of a COVID vaccination.
-final class VaccinationData: Model, ImageAttached {
+final class VaccinationData: Model, ImageAttached, HasStatus {
 	static let schema = "vaccination_data"
 
 	@ID(key: .id)
@@ -44,4 +44,3 @@ final class VaccinationData: Model, ImageAttached {
 		self.status = status
 	}
 }
-

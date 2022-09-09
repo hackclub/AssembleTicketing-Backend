@@ -2,7 +2,7 @@ import Vapor
 import Fluent
 
 /// A COVID Test record.
-final class CovidTestData: Model, ImageAttached, ResponseEncodable {
+final class CovidTestData: Model, ImageAttached, HasStatus {
 	static let schema = "covid_test_data"
 
 	/// The internal ID of the user.

@@ -17,29 +17,45 @@ struct UserController: Controller {
 			.grouped("admin")
 		admin.get("index", use: adminIndex)
 		admin.get(":userID", use: adminGet)
-//		admin.get(["filtered", "status", ":status"], use: getFilteredStatus)
+		admin.get(["filtered", "vaccination", ":status"], use: filterVaccinationStatus)
+		admin.get(["filtered", "tests", ":status"], use: filterCovidTestStatus)
 	}
 
-//	func getFilteredStatus(req: Request) async throws -> [User.Response] {
-//		guard let statusString = req.parameters.get("status"), let status = VerificationStatus(rawValue: statusString) else {
-//			throw Abort(.badRequest, reason: "Invalid status.")
-//		}
-//
-//		// This is what giving up looks like
-//		var unfilteredUsers = try await User
-//			.query(on: req.db)
-//			.all()
-//
-//		unfilteredUsers.removeAll { user in
-//			return status != min(user.testStatus, user.vaccinationStatus)
-//		}
-//
-//		let filteredUsers = unfilteredUsers
-//
-//		return try await filteredUsers.concurrentMap { user in
-//			return try await user.getResponse(on: req.db)
-//		}
-//	}
+	func filterVaccinationStatus(req: Request) async throws -> [User.Response] {
+		guard
+			let statusString = req.parameters.get("status"),
+			let status = VerificationStatus(rawValue: statusString)
+		else {
+			throw Abort(.badRequest, reason: "Invalid status.")
+		}
+
+		let vaccineRecords = try await VaccinationData
+			.query(on: req.db)
+			.filter(\.$status == status)
+			.all()
+
+		return try await vaccineRecords.concurrentMap { record in
+			return try await record.$user.get(on: req.db).getResponse(on: req.db)
+		}
+	}
+
+	func filterCovidTestStatus(req: Request) async throws -> [User.Response] {
+		guard
+			let statusString = req.parameters.get("status"),
+			let status = VerificationStatus(rawValue: statusString)
+		else {
+			throw Abort(.badRequest, reason: "Invalid status.")
+		}
+
+		let vaccineRecords = try await VaccinationData
+			.query(on: req.db)
+			.filter(\.$status == status)
+			.all()
+
+		return try await vaccineRecords.concurrentMap { record in
+			return try await record.$user.get(on: req.db).getResponse(on: req.db)
+		}
+	}
 
 	func adminGet(req: Request) async throws -> User.Response {
 		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
