@@ -6,7 +6,7 @@ extension CovidTestData {
 			try await database.schema(CovidTestData.schema)
 				.id()
 				.field("user_id", .uuid, .required, .references(User.schema, .id))
-				.field("image_id", .uuid, .required, .references(Image.schema, .id))
+				.field("image_id", .uuid, .required, .references(ImageModel.schema, .id))
 				.field("modified_date", .datetime, .required)
 				.create()
 		}

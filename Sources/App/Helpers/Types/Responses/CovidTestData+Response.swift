@@ -27,10 +27,22 @@ extension CovidTestData {
 		}
 
 		/// The status of the verification after upload.
-		var status: User.VerificationStatus
+		var status: VerificationStatus
 		/// The image that was uploaded.
-		var image: Image.Response
+		var image: Image
 		/// The time the record was last updated.
 		var lastUpdated: Date
+	}
+
+	func getResponse(on db: Database) async throws -> Response {
+		guard let imageModel = try await self.$image.get(on: db) else {
+			throw Abort(.notFound, reason: "No image attached to the COVID Test data.")
+		}
+
+		return try await .init(
+			status: self.status,
+			image: imageModel.image,
+			lastUpdated: self.lastModified
+		)
 	}
 }

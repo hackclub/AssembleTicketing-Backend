@@ -4,7 +4,7 @@ import Vapor
 import JWT
 import ConcurrentIteration
 import Mailgun
-import PassEncoder
+import PassIssuingKit
 
 // configures your application
 public func configure(_ app: Application) throws {
@@ -13,12 +13,15 @@ public func configure(_ app: Application) throws {
 
 	app.routes.defaultMaxBodySize = "50mb"
 
-	/// Initialize the ticketing configuration from the environment.
-	try app.ticketingConfiguration = TicketingConfiguration(from: app.environment)
+	/// Initialize the configuration from the environment.
+	try app.ticketConfig = TicketValidationConfiguration()
+	try app.healthCardConfig = SMARTHealthCardConfiguration()
+	try app.eventConfig = EventConfiguration()
+	try app.mailgunConfig = MailgunConfiguration()
 
 	// CORS
 	let corsConfiguration = CORSMiddleware.Configuration(
-		allowedOrigin: .custom(app.ticketingConfiguration.clientURL.absoluteString),
+		allowedOrigin: .custom(app.ticketConfig.clientURL.absoluteString),
 		allowedMethods: [.GET, .POST, .PUT, .OPTIONS, .DELETE, .PATCH],
 		allowedHeaders: [
 			.accept,
@@ -49,11 +52,9 @@ public func configure(_ app: Application) throws {
     try routes(app)
 
 	// Keys
-	let ticketSignerKeyURL = app.ticketingConfiguration.ticketSigningKeyDir.appendingPathComponent("ticketSigner.key")
-	let ticketSignerString = try String(contentsOf: ticketSignerKeyURL)
-	let ticketSignerKey: RSAKey = try .private(pem: ticketSignerString)
-
-	app.jwt.signers.use(.rs256(key: ticketSignerKey), kid: .tickets, isDefault: false)
+	let walletSignerJWKSURL = app.walletConfig.passSigningKeyDir.appendingPathComponent("ticketSigner.jwks.json")
+	let walletJWKS = try String(contentsOf: walletSignerJWKSURL)
+	try app.jwt.signers.use(jwksJSON: walletJWKS)
 
 	if let accessJWKs = try? String(contentsOfFile: Environment.get(withPrejudice: "ACCESS_KEY_URL")) {
 		try app.jwt.signers.use(jwksJSON: accessJWKs)
@@ -64,7 +65,7 @@ public func configure(_ app: Application) throws {
 			let jwksResponse = try await app.client.get(
 				.init(
 					string: app
-						.ticketingConfiguration
+						.ticketConfig
 						.idAPIURL
 						.appendingPathComponent(".well-known/jwks.json")
 						.absoluteString
@@ -78,26 +79,21 @@ public func configure(_ app: Application) throws {
 		semaphore.wait()
 	}
 
-	PassSigner.shared.appleWWDRCertURL = app.ticketingConfiguration.ticketSigningKeyDir.appendingPathComponent("wwdr.pem")
+	Pass.setWWDRCert(at: app.walletConfig.passSigningKeyDir.appendingPathComponent("wwdr.pem"))
 
 	// MARK: - Mailgun
-	app.mailgun.configuration = .environment
-	// TODO: Stop hardcoding this
-	app.mailgun.defaultDomain = .init("mail.assemble.hackclub.com", .us)
+	app.mailgun.configuration = .init(apiKey: app.mailgunConfig.mailgunAPIKey)
+	app.mailgun.defaultDomain = .init(app.mailgunConfig.mailgunDomain, app.mailgunConfig.mailgunRegion)
 
 	// Migrations
 	app.migrations.add(User.Create())
 	app.migrations.add(VaccinationData.Create())
 	app.migrations.add(VaccinationData.AddMIMEType())
 	app.migrations.add(VaccinationData.AddDate())
-	app.migrations.add(Image.Create())
+	app.migrations.add(ImageModel.Create())
 	app.migrations.add(VaccinationData.AddImageParent())
-	app.migrations.add(VaccinationData.CopyImages())
+//	app.migrations.add(VaccinationData.CopyImages())
 	app.migrations.add(User.AddCovidTestState())
 	app.migrations.add(CovidTestData.Create())
 	app.migrations.add(User.AddEventData())
-}
-
-extension JWKIdentifier {
-	static let tickets = JWKIdentifier(string: "tickets")
 }

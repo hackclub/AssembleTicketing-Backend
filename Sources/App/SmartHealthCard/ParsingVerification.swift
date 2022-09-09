@@ -107,7 +107,7 @@ extension SmartHealthCard {
 		
 		req.logger.log(level: .debug, "verify jws called")
 
-		let (issuer, kid, name) = try getInfo(from: jws, with: req.ticketingConfiguration.issuers)
+		let (issuer, kid, name) = try getInfo(from: jws, with: req.healthCardConfig.issuers)
 
 		req.logger.log(level: .debug, "got jws data")
 

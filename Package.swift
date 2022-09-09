@@ -18,7 +18,7 @@ let package = Package(
 		.package(url: "https://github.com/allotropeinc/ConcurrentIteration.git", from: "1.0.0"),
 		.package(url: "https://github.com/fwcd/swift-qrcode-generator.git", from: "1.0.0"),
 		.package(url: "https://github.com/vapor-community/mailgun.git", from: "5.0.0"),
-		.package(url: "https://github.com/aydenp/PassEncoder.git", branch: "master"),
+		.package(url: "https://github.com/tetraoxygen/PassIssuingKit.git", branch: "main")
 	],
     targets: [
         .target(
@@ -34,7 +34,7 @@ let package = Package(
 				.product(name: "ConcurrentIteration", package: "ConcurrentIteration"),
 				.product(name: "QRCodeGenerator", package: "swift-qrcode-generator"),
 				.product(name: "Mailgun", package: "Mailgun"),
-				.product(name: "PassEncoder", package: "PassEncoder")
+				.product(name: "PassIssuingKit", package: "PassIssuingKit")
             ],
 			resources: [
 				.copy("Resources/vci-issuers.json"),

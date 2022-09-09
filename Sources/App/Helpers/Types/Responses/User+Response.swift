@@ -7,24 +7,32 @@ extension User: ResponseEncodable {
 	}
 
 	/// A version of User meant to be sent over the wire with a VaccinationResponse.
-	struct Response: Content {
+	struct Response: Content, ResponseHashable {
+		func sha256() -> Data {
+			var hasher = SHA256()
+
+			let nameData = Data(name.utf8)
+			let emailData = Data(email.utf8)
+
+			hasher.update(data: nameData)
+			hasher.update(data: emailData)
+
+			let hashed = hasher.finalize()
+			let hashedBytes = hashed.compactMap { UInt8($0) }
+			let data = Data(hashedBytes)
+
+			return data
+		}
+
 		var id: UUID
 		var name: String
 		var email: String
-		@available(*, deprecated)
-		var vaccinationData: VaccinationData.Response?
 
 		/// Creates a Response from a User. Will include vaccination data if eager-loaded.
 		init(_ user: User, on database: Database) async throws {
 			self.id = try user.requireID()
 			self.name = user.name
 			self.email = user.email
-
-			// Weird double-question-mark to handle loading (only send the value if pre-loaded)
-			if let wrappedVaccinationData = user.$vaccinationData.value, let vaccinationData = wrappedVaccinationData {
-				let record = try await vaccinationData.getRecord(on: database)
-				self.vaccinationData = .init(status: user.vaccinationStatus, record: record, lastUpdated: vaccinationData.lastModified)
-			}
 		}
 	}
 }

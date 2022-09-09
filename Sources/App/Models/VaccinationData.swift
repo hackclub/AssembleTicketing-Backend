@@ -2,57 +2,46 @@ import Vapor
 import Fluent
 
 /// A record of a COVID vaccination.
-final class VaccinationData: ModelStatusEncodable {
-	static var parentStatusPath: KeyPath<User, User.VerificationStatus> = \.vaccinationStatus
-
-	static var parentPath: KeyPath<VaccinationData, ParentType> = \.user
-
-	typealias ParentType = User
-
-	typealias StatusType = User.VerificationStatus
-
+final class VaccinationData: Model, ImageAttached {
 	static let schema = "vaccination_data"
 
 	@ID(key: .id)
 	/// The internal ID of the user.
 	var id: UUID?
+	
+	@Field(key: .status)
+	var status: VerificationStatus
 
-	@Parent(key: "user_id")
+	/// The user associated with the vaccination.
+	@Parent(key: .userID)
 	var user: User
 
+	// NOTE: This is an OptionalParent relation so we can have Image be related to multiple types.
 	/// The image object, if it exists for this. 
-	@OptionalParent(key: "image_id")
-	var image: Image?
-
-	/// The user's vaccine card, if provided.
-	@Field(key: "card_photo")
-	var photoData: Data?
-
-	/// The card's MIME type, if applicable.
-	@Field(key: "card_photo_type")
-	var photoType: HTTPMediaType?
+	@OptionalParent(key: .imageID)
+	var image: ImageModel?
 
 	/// The user's verified vaccination, if provided.
-	@Field(key: "verified_vaccination")
+	@Field(key: .verifiedVaccination)
 	var verifiedVaccination: Minimized.VerifiedVaccinationRecord?
 
 	/// The date on which the vaccination was last modified.
-	@Field(key: "modified_date")
+	@Field(key: .modifiedDate)
 	var lastModified: Date
 
-	init() { }
-
-	init(id: UUID? = nil, verifiedVaccination: Minimized.VerifiedVaccinationRecord) {
-		self.id = id
-		self.verifiedVaccination = verifiedVaccination
-		self.lastModified = Date()
-		self.photoType = nil
+	// Boilerplate to get the actual relation so we can deal with ImageAttached generically.
+	var imageRelation: OptionalParentProperty<VaccinationData, ImageModel> {
+		self.$image
 	}
 
-	init(id: UUID? = nil, photoData: Data, photoType: HTTPMediaType) {
-		self.id = id
-		self.photoData = photoData
-		self.photoType = photoType
+	init() {
 		self.lastModified = Date()
+	}
+
+	init(id: UUID? = nil, status: VerificationStatus) {
+		self.id = id
+		self.lastModified = Date()
+		self.status = status
 	}
 }
+

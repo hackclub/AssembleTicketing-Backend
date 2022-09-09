@@ -9,4 +9,3 @@ protocol ResponseEncodable {
 
 	func getResponse(on db: Database) async throws -> Response
 }
-

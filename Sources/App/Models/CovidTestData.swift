@@ -2,26 +2,7 @@ import Vapor
 import Fluent
 
 /// A COVID Test record.
-final class CovidTestData: ModelStatusEncodable, ResponseEncodable {
-	static var parentStatusPath: KeyPath<User, User.VerificationStatus> = \.testStatus
-
-	static var parentPath: KeyPath<CovidTestData, ParentType> = \.user
-
-	typealias ParentType = User
-
-	typealias StatusType = User.VerificationStatus
-
-	func getResponse(on db: Database) async throws -> Response {
-		let user = self.getParent(on: db)
-		let status = self.getStatus(from: user)
-
-		return try await .init(
-			status: status,
-			image: self.$image.get(on: db).getResponse(on: db),
-			lastUpdated: self.lastModified
-		)
-	}
-
+final class CovidTestData: Model, ImageAttached, ResponseEncodable {
 	static let schema = "covid_test_data"
 
 	/// The internal ID of the user.
@@ -29,21 +10,32 @@ final class CovidTestData: ModelStatusEncodable, ResponseEncodable {
 	var id: UUID?
 
 	/// The associated user.
-	@Parent(key: "user_id")
+	@Parent(key: .userID)
 	var user: User
 
+	// NOTE: This is a Parent relation so we can have Image be related to multiple types.
 	/// The associated image.
-	@Parent(key: "image_id")
-	var image: Image
+	@OptionalParent(key: .imageID)
+	var image: ImageModel?
+
+	/// The VerificationStatus for the test.
+	@Field(key: .status)
+	var status: VerificationStatus
 
 	/// The date on which the test was last modified.
-	@Field(key: "modified_date")
+	@Field(key: .modifiedDate)
 	var lastModified: Date
+
+	// Boilerplate to get the actual relation so we can deal with ImageAttached generically.
+	var imageRelation: OptionalParentProperty<CovidTestData, ImageModel> {
+		self.$image
+	}
 
 	init() { }
 
-	init(id: UUID? = nil) {
+	init(id: UUID? = nil, status: VerificationStatus) {
 		self.id = id
+		self.status = status
 		self.lastModified = Date()
 	}
 }

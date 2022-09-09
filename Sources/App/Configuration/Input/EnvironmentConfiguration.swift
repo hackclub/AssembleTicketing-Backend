@@ -26,4 +26,8 @@ extension Environment {
 	}
 }
 
-
+/// A protocol for configuration objects that can initialize from the environment.
+protocol EnvironmentConfiguration {
+	/// Initialize the configuration object from the environment automatically.
+	init() throws
+}
