@@ -1,80 +1,11 @@
 import Fluent
 import Vapor
-import QRCodeGenerator
 import Mailgun
 import PassIssuingKit
+import MagickBird
 import JWT
 
 struct TicketController: RouteCollection {
-//	struct TicketTypeHandler<ReturnType: AsyncResponseEncodable>: RouteCollection {
-//		var ticketGenerator: (_ token: String, _ user: User, _ request: Request) async throws -> ReturnType
-//
-//		func boot(routes: RoutesBuilder) throws {
-//			let authenticated = routes
-//				.grouped([AccessToken.authenticator(), AccessToken.guardMiddleware()])
-//			authenticated.get(use: fromAuthenticatedUser)
-//			routes.get(":ticketToken", use: fromExistingToken)
-//		}
-//
-//		/// Validates a provided ticket token, returning the token if valid.
-//		static func validateTicketToken(req: Request) async throws -> (tokenString: String, token: TicketToken, user: User) {
-//			guard let tokenString = req.parameters.get("ticketToken") else {
-//				throw Abort(.badRequest, reason: "No token provided.")
-//			}
-//			// Validate user input because user input is evil
-//			let token = try req.jwt.verify(tokenString, as: TicketToken.self)
-//
-//			guard let user = try await User.find(UUID(uuidString: token.subject.value), on: req.db) else {
-//				throw Abort(.notFound, reason: "No user exists for this token.")
-//			}
-//
-//			return (tokenString, token, user)
-//		}
-//
-//		/// Gets the signed in user's ticket token, throwing an error if they're for whatever reason ineligible.
-//		static func getTicketToken(req: Request) async throws -> (tokenString: String, token: TicketToken, user: User) {
-//			let user = try await req.getUser()
-//
-//			return try await getTicketToken(user: user, jwt: req.jwt)
-//		}
-//
-//		/// Get a specific user's ticket token. Only call this route from admin routes.
-//		static func getTicketToken(user: User, jwt: Request.JWT) async throws -> (tokenString: String, token: TicketToken, user: User) {
-//
-//			guard
-//				let vaccinationStatus = user.$vaccinationData.get(on: req.db),
-//				vaccinationStatus == .verified else
-//			{
-//				throw Abort(.conflict, reason: "Your vaccination wasn't verified.")
-//			}
-//
-//			guard user.testStatus == .verified else {
-//				throw Abort(.conflict, reason: "Your test wasn't verified.")
-//			}
-//
-//			guard user.waiverStatus != nil else {
-//				throw Abort(.conflict, reason: "Your waiver wasn't submitted.")
-//			}
-//
-//			let userID = try user.requireID()
-//			let token = TicketToken(subject: .init(value: userID.uuidString))
-//			let signedToken = try jwt.sign(token, kid: .tickets)
-//			return (signedToken, token, user)
-//		}
-//
-//		func fromExistingToken(req: Request) async throws -> ReturnType {
-//			let (tokenString, token, user) = try await Self.validateTicketToken(req: req)
-//
-//			return try await ticketGenerator(tokenString, user, req)
-//		}
-//
-//		func fromAuthenticatedUser(req: Request) async throws -> ReturnType {
-//			let (tokenString, token, user) = try await Self.getTicketToken(req: req)
-//
-//			return try await ticketGenerator(tokenString, user, req)
-//		}
-//	}
-//
 	func boot(routes: RoutesBuilder) throws {
 //		let unauthed = routes.grouped("tickets")
 //		let tickets = routes
@@ -96,14 +27,7 @@ struct TicketController: RouteCollection {
 //		}
 	}
 //
-//	static func generateQRString(token: String) throws -> String {
-//		// Low error connection because these are going to be on reasonably high-quality mobile device screens
-//		let qr = try QRCode.encode(text: token, ecl: .low)
-//		let svgString = qr.toSVGString(border: 2)
-//
-//		return svgString
-//	}
-//
+
 //	func generateQR(token: String, user: User, request: Request) async throws -> Response {
 //		let svgString = try Self.generateQRString(token: token)
 //
@@ -113,7 +37,7 @@ struct TicketController: RouteCollection {
 //
 //		return .init(status: .ok, headers: headers, body: .init(string: svgString))
 //	}
-//
+
 	func generateWalletPass(token: String, user: User, request: Request) async throws -> Response {
 		// The baked-in resources.
 		let fileNames = ["icon", "icon@2x", "logo", "logo@2x", "strip", "strip@2x"]
@@ -176,11 +100,19 @@ struct TicketController: RouteCollection {
 //	}
 //
 //
-//	// TODO: Clean this entirely up.
+	// TODO: Clean this entirely up.
 //	static func emailTicket(user: User, mailgun: MailgunProvider, jwt: Request.JWT, client: Client) async throws -> HTTPStatus {
-//		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(user: user, jwt: jwt)
+////		let (tokenString, _, _) = try await TicketTypeHandler<HTTPStatus>.getTicketToken(user: user, jwt: jwt)
+//		let tokenString = "foo"
 //
 //		let qrString = try generateQRString(token: tokenString)
+//
+//		let tempDir = FileManager.default.temporaryDirectory
+//		let tempFile = try tempDir.appendingPathComponent(user.requireID().uuidString)
+//		// Write to a temporary file to placate ImageMagick
+//		try qrString.write(toFile: tempFile.path, atomically: true, encoding: .utf8)
+//
+//
 //
 //		guard let walletBadgeURL = Bundle.module.url(forResource: "walletbadge", withExtension: "png") else {
 //			throw Abort(.internalServerError, reason: "Couldn't find wallet badge.")
