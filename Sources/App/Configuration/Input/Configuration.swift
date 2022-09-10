@@ -17,6 +17,7 @@ public func configure(_ app: Application) throws {
 	try app.ticketConfig = TicketValidationConfiguration()
 	try app.healthCardConfig = SMARTHealthCardConfiguration()
 	try app.eventConfig = EventConfiguration()
+	try app.walletConfig = WalletPassConfiguration()
 	try app.mailgunConfig = MailgunConfiguration()
 
 	// CORS
@@ -52,9 +53,13 @@ public func configure(_ app: Application) throws {
     try routes(app)
 
 	// Keys
-	let walletSignerJWKSURL = app.walletConfig.passSigningKeyDir.appendingPathComponent("ticketSigner.jwks.json")
-	let walletJWKS = try String(contentsOf: walletSignerJWKSURL)
-	try app.jwt.signers.use(jwksJSON: walletJWKS)
+	// Ticket token signing
+	let walletSignerKeyURL = app.walletConfig.passSigningKeyDir.appendingPathComponent("ticketSigner.pem")
+	let walletSignerPEM = try String(contentsOf: walletSignerKeyURL)
+	print(walletSignerPEM)
+	let walletSignerKey = try ECDSAKey.private(pem: walletSignerPEM)
+	print(walletSignerKey)
+	app.jwt.signers.use(.es256(key: walletSignerKey), kid: .tickets)
 
 	if let accessJWKs = try? String(contentsOfFile: Environment.get(withPrejudice: "ACCESS_KEY_URL")) {
 		try app.jwt.signers.use(jwksJSON: accessJWKs)
@@ -87,13 +92,11 @@ public func configure(_ app: Application) throws {
 
 	// Migrations
 	app.migrations.add(User.Create())
-	app.migrations.add(VaccinationData.Create())
-	app.migrations.add(VaccinationData.AddMIMEType())
-	app.migrations.add(VaccinationData.AddDate())
 	app.migrations.add(ImageModel.Create())
-	app.migrations.add(VaccinationData.AddImageParent())
-//	app.migrations.add(VaccinationData.CopyImages())
-	app.migrations.add(User.AddCovidTestState())
+	app.migrations.add(VaccinationData.Create())
 	app.migrations.add(CovidTestData.Create())
-	app.migrations.add(User.AddEventData())
+}
+
+extension JWKIdentifier {
+	static let tickets = JWKIdentifier(string: "tickets")
 }

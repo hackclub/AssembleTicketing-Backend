@@ -5,9 +5,11 @@ extension VaccinationData {
 		func prepare(on database: Database) async throws {
 			try await database.schema(VaccinationData.schema)
 				.id()
-				.field("user_id", .uuid, .foreignKey(User.schema, .key(.id), onDelete: .cascade, onUpdate: .noAction))
-				.field("card_photo", .data)
-				.field("verified_vaccination", .json)
+				.field(.userID, .uuid, .required, .references(User.schema, .id))
+				.field(.imageID, .uuid, .references(ImageModel.schema, .id))
+				.field(.status, .string, .required)
+				.field(.verifiedVaccination, .json)
+				.field(.modifiedDate, .datetime, .required)
 				.create()
 		}
 

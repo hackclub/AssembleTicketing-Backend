@@ -18,7 +18,7 @@ extension User {
 	/// Returns the token for a user's ticket.
 	func generateTicketToken(req: Request) throws -> String {
 		let payload = try TicketToken(subject: .init(value: self.requireID().uuidString))
-		let token = try req.jwt.sign(payload)
+		let token = try req.jwt.sign(payload, kid: .tickets)
 
 		return token
 	}
@@ -66,6 +66,9 @@ extension User {
 				foregroundColor: req.walletConfig.foregroundColor,
 				backgroundColor: req.walletConfig.backgroundColor,
 				labelColor: req.walletConfig.labelColor,
+				barcodes: [
+					.init(message: token, format: .qr)
+				],
 				logoText: req.eventConfig.eventName,
 				organizationName: req.eventConfig.organizationName,
 				description: "\(req.eventConfig.eventName) Ticket",
@@ -78,7 +81,8 @@ extension User {
 							.date(.init(key: "time", value: req.eventConfig.date.iso8601, dateStyle: .medium))
 						]
 					)
-				)),
+				)
+			),
 			images: fileURLs
 		)
 

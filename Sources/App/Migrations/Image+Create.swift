@@ -5,8 +5,8 @@ extension ImageModel {
 		func prepare(on database: Database) async throws {
 			try await database.schema(ImageModel.schema)
 				.id()
-				.field("photo_data", .data, .required)
-				.field("mime_type", .string, .required)
+				.field(.data, .data, .required)
+				.field(.mimeType, .string, .required)
 				.create()
 		}
 

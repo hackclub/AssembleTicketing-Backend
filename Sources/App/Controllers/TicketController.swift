@@ -40,7 +40,6 @@ struct TicketController: RouteCollection {
 		func fromAuthenticatedUser(req: Request) async throws -> Response {
 			let user = try await req.getUser()
 
-
 			return try await generateResponse(user, req)
 		}
 
@@ -50,19 +49,6 @@ struct TicketController: RouteCollection {
 
 			return try await generateResponse(user, req)
 		}
-	}
-
-	func getWalletPassUnauthenticated(req: Request) async throws -> Response {
-		let token = try req.getTicketToken()
-		let user = try await User.find(ticketToken: token, on: req.db)
-
-		return try await user.generateWalletPass(req: req)
-	}
-
-	func getWalletPass(req: Request) async throws -> Response {
-		let user = try await req.getUser()
-
-		return try await user.generateWalletPass(req: req)
 	}
 
 	func adminGetCheckInData(req: Request) async throws -> User.CheckInResponse {

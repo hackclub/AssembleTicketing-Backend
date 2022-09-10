@@ -5,9 +5,10 @@ extension CovidTestData {
 		func prepare(on database: Database) async throws {
 			try await database.schema(CovidTestData.schema)
 				.id()
-				.field("user_id", .uuid, .required, .references(User.schema, .id))
-				.field("image_id", .uuid, .required, .references(ImageModel.schema, .id))
-				.field("modified_date", .datetime, .required)
+				.field(.userID, .uuid, .required, .references(User.schema, .id))
+				.field(.imageID, .uuid, .references(ImageModel.schema, .id))
+				.field(.status, .string, .required)
+				.field(.modifiedDate, .datetime, .required)
 				.create()
 		}
 

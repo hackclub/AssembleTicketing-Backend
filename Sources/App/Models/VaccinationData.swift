@@ -8,10 +8,6 @@ final class VaccinationData: Model, ImageAttached, HasStatus {
 	@ID(key: .id)
 	/// The internal ID of the user.
 	var id: UUID?
-	
-	@Field(key: .status)
-	var status: VerificationStatus
-
 	/// The user associated with the vaccination.
 	@Parent(key: .userID)
 	var user: User
@@ -20,6 +16,9 @@ final class VaccinationData: Model, ImageAttached, HasStatus {
 	/// The image object, if it exists for this. 
 	@OptionalParent(key: .imageID)
 	var image: ImageModel?
+
+	@Field(key: .status)
+	var status: VerificationStatus
 
 	/// The user's verified vaccination, if provided.
 	@Field(key: .verifiedVaccination)
