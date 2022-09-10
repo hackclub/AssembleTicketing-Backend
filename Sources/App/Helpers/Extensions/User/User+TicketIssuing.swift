@@ -63,6 +63,9 @@ extension User {
 				// If you're building support for remote updates into the system, please make the hostname a config parameter.
 				webServiceURL: URL(string: "https://api.ticketing.assemble.hackclub.com/tickets/update/")!,
 				authenticationToken: token,
+				foregroundColor: req.walletConfig.foregroundColor,
+				backgroundColor: req.walletConfig.backgroundColor,
+				labelColor: req.walletConfig.labelColor,
 				logoText: req.eventConfig.eventName,
 				organizationName: req.eventConfig.organizationName,
 				description: "\(req.eventConfig.eventName) Ticket",
