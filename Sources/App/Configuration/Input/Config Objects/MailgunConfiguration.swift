@@ -26,6 +26,7 @@ struct MailgunConfiguration: EnvironmentConfiguration {
 	}
 }
 
+extension MailgunRegion: Codable { }
 
 struct MailgunConfigurationKey: StorageKey {
 	typealias Value = MailgunConfiguration

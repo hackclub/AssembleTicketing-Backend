@@ -56,15 +56,20 @@ public func configure(_ app: Application) throws {
 	// Ticket token signing
 	let walletSignerKeyURL = app.walletConfig.passSigningKeyDir.appendingPathComponent("ticketSigner.pem")
 	let walletSignerPEM = try String(contentsOf: walletSignerKeyURL)
-	print(walletSignerPEM)
 	let walletSignerKey = try ECDSAKey.private(pem: walletSignerPEM)
-	print(walletSignerKey)
 	app.jwt.signers.use(.es256(key: walletSignerKey), kid: .tickets)
 
-	if let accessJWKs = try? String(contentsOfFile: Environment.get(withPrejudice: "ACCESS_KEY_URL")) {
-		try app.jwt.signers.use(jwksJSON: accessJWKs)
+
+	let accessKeyLocation = try Environment.convert(optional: "ACCESS_KEY_PATH", using: { value in
+		URL(fileURLWithPath: value)
+	})
+
+	if let accessKeyLocation = accessKeyLocation {
+		// It's a file, get it locally
+		let accessJWKS = try String(contentsOf: accessKeyLocation)
+		try app.jwt.signers.use(jwksJSON: accessJWKS)
 	} else {
-		// Set a semaphore to be able to run async tasks
+		// It's on the ID server, attempt to get it there.
 		let semaphore = DispatchSemaphore(value: 0)
 		Task {
 			let jwksResponse = try await app.client.get(

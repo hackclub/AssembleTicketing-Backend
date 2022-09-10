@@ -30,7 +30,7 @@ extension Environment {
 	///   - key: The key of the environment variable to fetch.
 	///   - converter: A function that will convert from the environment variable string to an optional generic value. If conversion fails, return nil.
 	/// - Throws: `ConfigurationErrors.invalidEnvVar` if the value can be found, but can't be converted.
-	static func convert<T>(_ key: String, using converter: (_ value: String) -> T?) throws -> T? {
+	static func convert<T>(optional key: String, using converter: (_ value: String) -> T?) throws -> T? {
 		guard let value = Environment.get(key) else {
 			return nil
 		}
@@ -43,7 +43,7 @@ extension Environment {
 }
 
 /// A protocol for configuration objects that can initialize from the environment.
-protocol EnvironmentConfiguration {
+protocol EnvironmentConfiguration: Codable {
 	/// Initialize the configuration object from the environment automatically.
 	init() throws
 }

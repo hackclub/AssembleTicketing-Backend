@@ -37,13 +37,13 @@ struct WalletPassConfiguration: EnvironmentConfiguration {
 		self.teamID = try Environment.get(withPrejudice: "TEAM_ID")
 		self.passSigningKeyPassword = try Environment.get(withPrejudice: "WALLET_SIGNING_PASSWORD")
 		self.passTypeIdentifier = try Environment.get(withPrejudice: "PASS_TYPE_IDENTIFIER")
-		self.foregroundColor = try Environment.convert("PASS_FOREGROUND_COLOR") { value in
+		self.foregroundColor = try Environment.convert(optional: "PASS_FOREGROUND_COLOR") { value in
 			.init(hex: value)
 		}
-		self.backgroundColor = try Environment.convert("PASS_BACKGROUND_COLOR") { value in
+		self.backgroundColor = try Environment.convert(optional: "PASS_BACKGROUND_COLOR") { value in
 			.init(hex: value)
 		}
-		self.labelColor = try Environment.convert("PASS_LABEL_COLOR") { value in
+		self.labelColor = try Environment.convert(optional: "PASS_LABEL_COLOR") { value in
 			.init(hex: value)
 		}
 	}
