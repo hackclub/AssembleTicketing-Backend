@@ -106,7 +106,7 @@ struct UserController: Controller {
 		}
 
 		guard
-			let waiverStatusString = try req.parameters.get("waiverStatus"),
+			let waiverStatusString = req.parameters.get("waiverStatus"),
 			let waiverStatus = User.WaiverStatus(rawValue: waiverStatusString)
 		else {
 			throw Abort(.badRequest, reason: "Invalid waiver status.")
