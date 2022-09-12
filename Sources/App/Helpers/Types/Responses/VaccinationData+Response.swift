@@ -1,5 +1,6 @@
 import Foundation
 import Vapor
+import VaporToOpenAPI
 import Fluent
 
 extension VaccinationData: ResponseEncodable {
@@ -9,7 +10,21 @@ extension VaccinationData: ResponseEncodable {
 	}
 
 	/// The response to a vaccination verification request.
-	struct Response: Content, ResponseHashable {
+	struct Response: Content, ResponseHashable, WithAnyExample {
+		static var anyExample: Codable {
+			Self.init(
+				status: .verified,
+				record: .verified(
+					record: .init(
+						issuer: .init(name: "The Hack Foundation", url: .init(string: "https://hackclub.com")!),
+						name: "Charlie Welsh",
+						secondShotDate: .init(timeIntervalSince1970: 0)
+					)
+				),
+				lastUpdated: .init(timeIntervalSince1970: 0)
+			)
+		}
+
 		func sha256() -> Data {
 			var hasher = SHA256()
 

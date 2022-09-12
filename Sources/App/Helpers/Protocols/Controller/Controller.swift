@@ -1,4 +1,5 @@
 import Vapor
+import VaporToOpenAPI
 import Fluent
 
 /// A protocol describing a Controller that manages a specific associated object type.
@@ -38,6 +39,7 @@ extension Controller {
 	/// The general controller routes, all grouped as one.
 	func generalRoutes(_ routes: RoutesBuilder) throws {
 		routes.get(use: view)
+			.openAPI(content: ObjectType.Response.self)
 	}
 }
 

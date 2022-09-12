@@ -1,5 +1,6 @@
 import Vapor
 import Fluent
+import VaporToOpenAPI
 
 extension CovidTestData: ResponseEncodable {
 	func getResponse(on db: Database) async throws -> Response {
@@ -14,7 +15,11 @@ extension CovidTestData: ResponseEncodable {
 		)
 	}
 
-	struct Response: Content, ResponseHashable {
+	struct Response: Content, ResponseHashable, WithAnyExample {
+		static var anyExample: Codable {
+			Self.init(status: .verified, image: Image.anyExample as! Image, lastUpdated: .init(timeIntervalSince1970: 0))
+		}
+
 		func sha256() -> Data {
 			var hasher = SHA256()
 

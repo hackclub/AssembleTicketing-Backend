@@ -1,4 +1,5 @@
 import Vapor
+import VaporToOpenAPI
 import FluentKit
 
 extension User: ResponseEncodable {
@@ -7,7 +8,11 @@ extension User: ResponseEncodable {
 	}
 
 	/// A version of User meant to be sent over the wire with a VaccinationResponse.
-	struct Response: Content, ResponseHashable {
+	struct Response: Content, ResponseHashable, WithAnyExample {
+		static var anyExample: Codable {
+			User.Response(id: UUID(), name: "Charlie Welsh", email: "charlie@summer.hackclub.com")
+		}
+
 		func sha256() -> Data {
 			var hasher = SHA256()
 
@@ -28,6 +33,13 @@ extension User: ResponseEncodable {
 		var name: String
 		var email: String
 		var waiverStatus: WaiverStatus?
+
+		private init(id: UUID, name: String, email: String, waiverStatus: WaiverStatus? = nil) {
+			self.id = id
+			self.name = name
+			self.email = email
+			self.waiverStatus = waiverStatus
+		}
 
 		/// Creates a Response from a User. Will include vaccination data if eager-loaded.
 		init(_ user: User) async throws {
