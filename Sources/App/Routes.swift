@@ -25,7 +25,9 @@ func routes(_ app: Application) throws {
 			.init(object: VaccinationController.ObjectType.Response.anyExample),
 			.init(object: TestController.ObjectType.Response.anyExample),
 			.init(object: Image.anyExample),
-			.init(object: User.CheckInResponse.anyExample)
+			.init(object: User.CheckInResponse.anyExample),
+			.init(object: StatusUpdate.anyExample),
+			.init(object: UserController.WaiverUpdate.anyExample)
 		]
 	)
 

@@ -1,4 +1,5 @@
 import Vapor
+import VaporToOpenAPI
 
 /// An enum with cases for generic verification statuses.
 enum VerificationStatus: String, Codable {
@@ -43,7 +44,9 @@ extension VerificationStatus: Comparable {
 }
 
 /// A Content-conforming struct used to decode status-update responses from the client.
-struct StatusUpdate: Content {
+struct StatusUpdate: Content, WithAnyExample {
+	static var anyExample: Codable = StatusUpdate(status: .verified)
+
 	/// The status to update.
 	var status: VerificationStatus
 }

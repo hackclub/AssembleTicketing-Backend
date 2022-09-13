@@ -1,8 +1,23 @@
 import Vapor
 import JWT
 import Fluent
+import VaporToOpenAPI
 
-struct UserController: Controller {
+struct UserController: AdminUpdateController {
+	typealias AdminUpdate = WaiverUpdate
+
+	struct WaiverUpdate: Content, WithAnyExample {
+		static var anyExample: Codable = Self(status: .mandatory)
+
+		var status: User.WaiverStatus
+	}
+
+	func adminUpdate(with update: WaiverUpdate, for user: User, on db: FluentKit.Database) async throws -> User {
+		user.waiverStatus = update.status
+		try await user.save(on: db)
+		return user
+	}
+
 	func getExistingModel(for user: User, on db: FluentKit.Database) async throws -> User? {
 		return user
 	}
@@ -11,12 +26,12 @@ struct UserController: Controller {
 
 	func boot(routes: RoutesBuilder) throws {
 		let users = routes.grouped("users")
-		users.get(use: me)
+		try generalRoutes(users)
 		let admin = users
 			.grouped(EnsureAdminUserMiddleware())
 			.grouped("admin")
 		admin.get("index", use: adminIndex)
-		admin.get(":userID", use: adminGet)
+		try adminRoutes(admin)
 		admin.get(["filtered", "vaccination", ":status"], use: filterVaccinationStatus)
 		admin.get(["filtered", "tests", ":status"], use: filterCovidTestStatus)
 	}
@@ -97,8 +112,6 @@ struct UserController: Controller {
 				try await user.getResponse(on: req.db)
 			}
 	}
-
-
 
 	func adminSetWaiverStatus(req: Request) async throws -> User.Response {
 		guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {

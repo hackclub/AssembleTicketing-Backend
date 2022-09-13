@@ -14,17 +14,16 @@ extension VaccinationData {
 	}
 
 	convenience init(_ record: VaccinationData.Response.RecordType, on db: Database) async throws {
+		self.init()
+		try await self.update(with: record, on: db)
+	}
+
+	func update(with record: VaccinationData.Response.RecordType, on db: Database) async throws {
 		switch record {
 			case .image(let image):
-				// Saving/attaching like this is required to get a type-agnostic relationship.
-				let model = ImageModel(image: image)
-				try await model.save(on: db)
-
-				self.init()
-				self.$image.id = try model.requireID()
-			case .verified(let verifiedRecord):
-				self.init()
-				self.verifiedVaccination = verifiedRecord
+				try await self.updateImage(with: image, on: db)
+			case .verified(let record):
+				self.verifiedVaccination = record
 		}
 	}
 

@@ -51,7 +51,11 @@ extension Controller where Self: AdminUpdateController, Self: ImageUploadControl
 		let cookieAuthed = routes.grouped([AccessToken.cookieAcceptingAuthenticator(), AccessToken.guardMiddleware()])
 
 		try generalRoutes(authed)
-		try imageRoutes(cookieAuthed)
+
+		let image = cookieAuthed
+			.grouped("image")
+
+		try imageRoutes(image)
 
 		// Admin routes
 		let admin = routes
