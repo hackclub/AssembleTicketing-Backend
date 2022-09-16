@@ -1,5 +1,6 @@
 import Vapor
 import Fluent
+import Sampleable
 
 extension CovidTestData: ResponseEncodable {
 	func getResponse(on db: Database) async throws -> Response {
@@ -14,9 +15,13 @@ extension CovidTestData: ResponseEncodable {
 		)
 	}
 
-	struct Response: Content, ResponseHashable {
-		static var anyExample: Codable {
-			Self.init(status: .verified, image: Image.anyExample as! Image, lastUpdated: .init(timeIntervalSince1970: 0))
+	struct Response: Content, Sampleable, ResponseHashable {
+		static var sample: CovidTestData.Response {
+			.init(
+                status: .verified,
+                image: Image.sample as! Image,
+                lastUpdated: .init(timeIntervalSince1970: 0)
+            )
 		}
 
 		func sha256() -> Data {

@@ -1,5 +1,6 @@
 import Vapor
 import FluentKit
+import Sampleable
 
 extension User: ResponseEncodable {
 	func getResponse(on db: Database) async throws -> Response {
@@ -7,9 +8,13 @@ extension User: ResponseEncodable {
 	}
 
 	/// A version of User meant to be sent over the wire with a VaccinationResponse.
-	struct Response: Content, ResponseHashable {
-		static var anyExample: Codable {
-			User.Response(id: UUID(), name: "Charlie Welsh", email: "charlie@summer.hackclub.com")
+	struct Response: Content, ResponseHashable, Sampleable {
+		static var sample: Response {
+            .init(
+                id: UUID(),
+                name: "Charlie Welsh",
+                email: "charlie@summer.hackclub.com"
+            )
 		}
 
 		func sha256() -> Data {

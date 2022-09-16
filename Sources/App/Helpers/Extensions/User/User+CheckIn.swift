@@ -1,6 +1,7 @@
 import Foundation
 import Vapor
 import Fluent
+import Sampleable
 
 extension User {
 	func getCheckInResponse(on db: Database) async throws -> CheckInResponse {
@@ -17,9 +18,14 @@ extension User {
 	}
 
 	/// Just the data the at-the-door person needs to know at a glance.
-	struct CheckInResponse: Content {
-		static var anyExample: Codable {
-            return Self.init(isCheckedIn: true, isVaccinated: true, hasTestedNegative: true, name: "Charlie Welsh")
+	struct CheckInResponse: Content, Sampleable {
+		static var sample: CheckInResponse {
+            return .init(
+                isCheckedIn: true,
+                isVaccinated: true,
+                hasTestedNegative: true,
+                name: "Charlie Welsh"
+            )
 		}
 
 		var isCheckedIn: Bool

@@ -1,6 +1,7 @@
 import Foundation
 import Vapor
 import Fluent
+import Sampleable
 
 extension VaccinationData: ResponseEncodable {
 	func getResponse(on db: Database) async throws -> Response {
@@ -9,9 +10,9 @@ extension VaccinationData: ResponseEncodable {
 	}
 
 	/// The response to a vaccination verification request.
-	struct Response: Content, ResponseHashable {
-		static var anyExample: Codable {
-			Self.init(
+	struct Response: Content, ResponseHashable, Sampleable {
+		static var sample: Response {
+			.init(
 				status: .verified,
 				record: .verified(
 					record: .init(
