@@ -1,14 +1,11 @@
 import Vapor
 import JWT
 import Fluent
-import VaporToOpenAPI
 
 struct UserController: AdminUpdateController {
 	typealias AdminUpdate = WaiverUpdate
 
-	struct WaiverUpdate: Content, WithAnyExample {
-		static var anyExample: Codable = Self(status: .mandatory)
-
+	struct WaiverUpdate: Content {
 		var status: User.WaiverStatus
 	}
 

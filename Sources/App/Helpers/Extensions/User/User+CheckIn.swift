@@ -1,6 +1,5 @@
 import Foundation
 import Vapor
-import VaporToOpenAPI
 import Fluent
 
 extension User {
@@ -18,9 +17,9 @@ extension User {
 	}
 
 	/// Just the data the at-the-door person needs to know at a glance.
-	struct CheckInResponse: Content, WithAnyExample {
+	struct CheckInResponse: Content {
 		static var anyExample: Codable {
-			return CheckInResponse(isCheckedIn: true, isVaccinated: true, hasTestedNegative: true, name: "Charlie Welsh")
+            return Self.init(isCheckedIn: true, isVaccinated: true, hasTestedNegative: true, name: "Charlie Welsh")
 		}
 
 		var isCheckedIn: Bool

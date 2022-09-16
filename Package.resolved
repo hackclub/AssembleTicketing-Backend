@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "anycodable",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Flight-School/AnyCodable",
-      "state" : {
-        "revision" : "f9fda69a7b704d46fb5123005f2f7e43dbb8a0fa",
-        "version" : "0.6.5"
-      }
-    },
-    {
       "identity" : "async-http-client",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swift-server/async-http-client.git",
@@ -105,7 +96,7 @@
       "location" : "https://github.com/tetraoxygen/jwt-kit.git",
       "state" : {
         "branch" : "add-zip-support",
-        "revision" : "779bda4becc86238dc70152ede4557273dc2bf54"
+        "revision" : "a39af10c794b64309e5d0a1f621686b5510dd813"
       }
     },
     {
@@ -124,6 +115,24 @@
       "state" : {
         "revision" : "0d55c35e788451ee27222783c7d363cb88092fab",
         "version" : "4.5.2"
+      }
+    },
+    {
+      "identity" : "openapikit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mattpolzin/OpenAPIKit.git",
+      "state" : {
+        "revision" : "328d11996ccc43205bd861535021d8c22168a08a",
+        "version" : "2.5.0"
+      }
+    },
+    {
+      "identity" : "openapireflection",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mattpolzin/OpenAPIReflection.git",
+      "state" : {
+        "revision" : "2747214f17d17d4662c03d9cbe85e5e3307285ea",
+        "version" : "1.0.0"
       }
     },
     {
@@ -171,12 +180,12 @@
       }
     },
     {
-      "identity" : "simplecoders",
+      "identity" : "sampleable",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dankinsoid/SimpleCoders.git",
+      "location" : "https://github.com/mattpolzin/Sampleable.git",
       "state" : {
-        "revision" : "851020895e17b77180234a465c2d8b8050f11ca0",
-        "version" : "1.2.0"
+        "revision" : "df44bf1a860481109dcf455e3c6daf0a0f1bc259",
+        "version" : "2.1.0"
       }
     },
     {
@@ -292,8 +301,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-ssl.git",
       "state" : {
-        "revision" : "a6f9a034e5903024c6bac4ce2c56b157688d844f",
-        "version" : "2.22.0"
+        "revision" : "ba7c0d7f82affc518147ea61d240330bf7f7ea9b",
+        "version" : "2.22.1"
       }
     },
     {
@@ -333,39 +342,30 @@
       }
     },
     {
-      "identity" : "swiftgger",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dankinsoid/Swiftgger.git",
-      "state" : {
-        "revision" : "476531082c30e504f04bbe4b096077c3ae0b7ea0",
-        "version" : "2.4.0"
-      }
-    },
-    {
       "identity" : "vapor",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/vapor.git",
       "state" : {
-        "revision" : "971becba16d6faf5c4cb869d2e3026e822d09059",
-        "version" : "4.65.1"
+        "revision" : "dda0de537e7906414dccd551e77095be1e34e3da",
+        "version" : "4.65.2"
       }
     },
     {
-      "identity" : "vaportoopenapi",
+      "identity" : "vaporopenapi",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dankinsoid/VaporToOpenAPI.git",
+      "location" : "https://github.com/tetraoxygen/VaporOpenAPI.git",
       "state" : {
-        "revision" : "58ea85933e4920c84d8424c1dc176819b7589370",
-        "version" : "0.20.0"
+        "branch" : "main",
+        "revision" : "0674ae756f1de3747c52fc8094f7e654c9adaa9e"
       }
     },
     {
-      "identity" : "vdcodable",
+      "identity" : "vaportypedroutes",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dankinsoid/VDCodable",
+      "location" : "https://github.com/mattpolzin/VaporTypedRoutes.git",
       "state" : {
-        "revision" : "9fb2c81036253593b5864557325e014fa2177d62",
-        "version" : "2.10.0"
+        "revision" : "fcc305353a7289203bb2e05356913993a4b04a6d",
+        "version" : "0.8.0"
       }
     },
     {
@@ -375,6 +375,15 @@
       "state" : {
         "revision" : "2d9d2188a08eef4a869d368daab21b3c08510991",
         "version" : "2.6.1"
+      }
+    },
+    {
+      "identity" : "yams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jpsim/Yams.git",
+      "state" : {
+        "revision" : "9ff1cc9327586db4e0c8f46f064b6a82ec1566fa",
+        "version" : "4.0.6"
       }
     },
     {

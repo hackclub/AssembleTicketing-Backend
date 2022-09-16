@@ -20,7 +20,7 @@ let package = Package(
 		.package(url: "https://github.com/vapor-community/mailgun.git", from: "5.0.0"),
 		.package(url: "https://github.com/tetraoxygen/PassIssuingKit.git", branch: "main"),
 		.package(url: "https://github.com/swhitty/SwiftDraw.git", from: "0.13.0"),
-		.package(url: "https://github.com/dankinsoid/VaporToOpenAPI.git", from: "0.20.0")
+		.package(url: "https://github.com/tetraoxygen/VaporOpenAPI.git", branch: "main"),
 	],
     targets: [
         .target(
@@ -38,7 +38,7 @@ let package = Package(
 				.product(name: "Mailgun", package: "Mailgun"),
 				.product(name: "PassIssuingKit", package: "PassIssuingKit"),
 				.product(name: "SwiftDraw", package: "SwiftDraw"),
-				.product(name: "VaporToOpenAPI", package: "VaporToOpenAPI")
+				.product(name: "VaporOpenAPI", package: "VaporOpenAPI")
             ],
 			resources: [
 				.copy("Resources/vci-issuers.json"),

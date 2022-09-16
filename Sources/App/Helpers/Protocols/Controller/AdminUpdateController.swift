@@ -1,11 +1,10 @@
 import Vapor
 import Fluent
-import VaporToOpenAPI
 
 /// A protocol for Controllers that support admin tasks.
 protocol AdminUpdateController: Controller {
 	/// An associated type to use for the upload of the `adminSet` route.
-	associatedtype AdminUpdate: Content, WithAnyExample
+	associatedtype AdminUpdate: Content
 
 	/// Updates the instance of `ObjectType` associated with the user and saves it to the database.
 	func adminUpdate(with update: AdminUpdate, for user: User, on db: Database) async throws -> ObjectType
@@ -44,7 +43,6 @@ extension AdminUpdateController {
 	func adminRoutes(_ routes: RoutesBuilder) throws {
 		routes.group(":userID") { admin in
 			admin.post(use: adminSet)
-				.openAPI(summary: "Set status", description: "Set an object's status with admin credentials", response: ObjectType.Response.self, content: AdminUpdate.self)
 			admin.get(use: adminView)
 			admin.get(":hash", use: adminView)
 		}

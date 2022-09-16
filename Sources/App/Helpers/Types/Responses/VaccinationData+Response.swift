@@ -1,6 +1,5 @@
 import Foundation
 import Vapor
-import VaporToOpenAPI
 import Fluent
 
 extension VaccinationData: ResponseEncodable {
@@ -10,7 +9,7 @@ extension VaccinationData: ResponseEncodable {
 	}
 
 	/// The response to a vaccination verification request.
-	struct Response: Content, ResponseHashable, WithAnyExample {
+	struct Response: Content, ResponseHashable {
 		static var anyExample: Codable {
 			Self.init(
 				status: .verified,

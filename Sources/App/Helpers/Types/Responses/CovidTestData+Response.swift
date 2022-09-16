@@ -1,6 +1,5 @@
 import Vapor
 import Fluent
-import VaporToOpenAPI
 
 extension CovidTestData: ResponseEncodable {
 	func getResponse(on db: Database) async throws -> Response {
@@ -15,7 +14,7 @@ extension CovidTestData: ResponseEncodable {
 		)
 	}
 
-	struct Response: Content, ResponseHashable, WithAnyExample {
+	struct Response: Content, ResponseHashable {
 		static var anyExample: Codable {
 			Self.init(status: .verified, image: Image.anyExample as! Image, lastUpdated: .init(timeIntervalSince1970: 0))
 		}

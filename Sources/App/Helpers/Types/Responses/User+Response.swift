@@ -1,5 +1,4 @@
 import Vapor
-import VaporToOpenAPI
 import FluentKit
 
 extension User: ResponseEncodable {
@@ -8,7 +7,7 @@ extension User: ResponseEncodable {
 	}
 
 	/// A version of User meant to be sent over the wire with a VaccinationResponse.
-	struct Response: Content, ResponseHashable, WithAnyExample {
+	struct Response: Content, ResponseHashable {
 		static var anyExample: Codable {
 			User.Response(id: UUID(), name: "Charlie Welsh", email: "charlie@summer.hackclub.com")
 		}
